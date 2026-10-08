@@ -1,6 +1,6 @@
-const { Category, Recipe } = require('../models');
+const { Category, Recipe, Comment } = require('../models');
 const ApiError = require('../utils/ApiError');
-const { recipeAuthorInclude } = require('../utils/includes');
+const { recipeAuthorInclude, commentAuthorInclude } = require('../utils/includes');
 
 // Randa kategoriją pagal :categoryId ir padeda į req.category
 async function loadCategory(req, res, next) {
@@ -26,4 +26,17 @@ async function loadRecipe(req, res, next) {
   next();
 }
 
-module.exports = { loadCategory, loadRecipe };
+// Randa atsiliepimą TIK to recepto viduje. Jei atsiliepimas priklauso kitam receptui, grąžinamas 404.
+async function loadComment(req, res, next) {
+  const comment = await Comment.findOne({
+    where: { id: req.params.commentId, recipeId: req.recipe.id },
+    include: [commentAuthorInclude],
+  });
+  if (!comment) {
+    throw new ApiError(404, 'Atsiliepimas nerastas šiame recepte');
+  }
+  req.comment = comment;
+  next();
+}
+
+module.exports = { loadCategory, loadRecipe, loadComment };
