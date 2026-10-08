@@ -590,9 +590,6 @@ paths:
                   message: Kategorijos, kurioje yra receptų, ištrinti negalima
                   details: null
 
-
-
-                  
   /categories/{categoryId}/recipes:
     parameters:
       - $ref: '#/components/parameters/CategoryId'
@@ -945,7 +942,7 @@ paths:
                   message: Parametras categoryId turi būti teigiamas sveikasis skaičius
                   details: null
 
-                    /categories/{categoryId}/recipes/{recipeId}/comments:
+  /categories/{categoryId}/recipes/{recipeId}/comments:
     parameters:
       - $ref: '#/components/parameters/CategoryId'
       - $ref: '#/components/parameters/RecipeId'
@@ -1186,3 +1183,167 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/CommentNotFound'
+
+  /users:
+    get:
+      tags: [Naudotojai]
+      summary: Naudotojų sąrašas
+      description: |
+        Grąžina puslapiuojamą naudotojų sąrašą pagal ID. Slaptažodžio hash niekada negrąžinamas.
+        2 laboratoriniame darbe šis metodas bus prieinamas tik administratoriui.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Naudotojų sąrašas (užklausa ?limit=2&page=2)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserList' }
+              example:
+                data:
+                  - id: 3
+                    username: ruta
+                    email: ruta@example.com
+                    role: user
+                    createdAt: "2026-10-08T13:28:32.832Z"
+                    updatedAt: "2026-10-08T13:28:32.832Z"
+                    _links:
+                      collection: { href: /api/users }
+                      dashboard: { href: /api/users/3/dashboard }
+                      recipes: { href: "/api/recipes?authorId=3" }
+                  - id: 4
+                    username: mantas
+                    email: mantas@example.com
+                    role: user
+                    createdAt: "2026-10-08T13:28:33.061Z"
+                    updatedAt: "2026-10-08T13:28:33.061Z"
+                    _links:
+                      collection: { href: /api/users }
+                      dashboard: { href: /api/users/4/dashboard }
+                      recipes: { href: "/api/recipes?authorId=4" }
+                pagination: { page: 2, limit: 2, totalItems: 4, totalPages: 2 }
+                _links:
+                  self: { href: "/api/users?limit=2&page=2" }
+                  first: { href: "/api/users?limit=2&page=1" }
+                  last: { href: "/api/users?limit=2&page=2" }
+                  prev: { href: "/api/users?limit=2&page=1" }
+        '400':
+          description: Netinkamas puslapiavimo parametras
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 400
+                  message: Parametras page turi būti teigiamas sveikasis skaičius
+                  details: null
+
+  /users/{userId}/dashboard:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Naudotojai]
+      summary: Naudotojo skydelis
+      description: |
+        Vienas resursas, sudarytas iš trijų esybių: naudotojo, jo receptų ir šių receptų gautų
+        atsiliepimų. Skaičiai (stats) skaičiuojami iš visų duomenų, o receivedComments
+        grąžina tik 10 naujausių atsiliepimų. Naudotojas be receptų gauna tuščius masyvus
+        ir averageRating: null. 2 laboratoriniame darbe skydelį matys tik pats naudotojas arba administratorius.
+      responses:
+        '200':
+          description: |
+            Naudotojo skydelis. Pavyzdys sutrumpintas: rodomas vienas receptas ir vienas atsiliepimas,
+            nors stats rodo visus.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+              example:
+                user:
+                  id: 2
+                  username: jonas
+                  email: jonas@example.com
+                  role: user
+                  createdAt: "2026-10-08T13:28:32.610Z"
+                  updatedAt: "2026-10-08T13:28:32.610Z"
+                  _links:
+                    collection: { href: /api/users }
+                    dashboard: { href: /api/users/2/dashboard }
+                    recipes: { href: "/api/recipes?authorId=2" }
+                stats:
+                  recipeCount: 3
+                  receivedCommentCount: 6
+                  averageRating: 4.5
+                recipes:
+                  - id: 8
+                    categoryId: 4
+                    authorId: 2
+                    title: Bulviniai blynai
+                    description: "Bulves ir svogūną smulkiai sutarkuokite, nusunkite skystį. Įmaišykite kiaušinį, miltus ir druską. Šaukštu dėkite masę į įkaitintą aliejų ir kepkite iš abiejų pusių, kol gražiai apskrus. Patiekite su grietine."
+                    ingredients: "1 kg bulvių\n1 svogūnas\n1 kiaušinis\n2 šaukštai miltų\naliejaus kepimui\ndruskos pagal skonį\ngrietinės patiekimui"
+                    prepTimeMinutes: 40
+                    difficulty: easy
+                    servings: 4
+                    imageUrl: null
+                    createdAt: "2026-10-08T13:28:33.824Z"
+                    updatedAt: "2026-10-08T13:28:33.824Z"
+                    commentCount: 2
+                    averageRating: 4.5
+                    _links:
+                      self: { href: /api/categories/4/recipes/8 }
+                      collection: { href: /api/categories/4/recipes }
+                      category: { href: /api/categories/4 }
+                      comments: { href: /api/categories/4/recipes/8/comments }
+                receivedComments:
+                  - id: 14
+                    recipeId: 8
+                    authorId: 3
+                    text: "Traškūs iš išorės ir minkšti viduje. Su grietine nieko geriau nereikia."
+                    rating: 5
+                    createdAt: "2026-10-08T13:28:34.701Z"
+                    updatedAt: "2026-10-08T13:28:34.701Z"
+                    author: { id: 3, username: ruta }
+                    _links:
+                      self: { href: /api/categories/4/recipes/8/comments/14 }
+                      collection: { href: /api/categories/4/recipes/8/comments }
+                      recipe: { href: /api/categories/4/recipes/8 }
+                _links:
+                  self: { href: /api/users/2/dashboard }
+                  recipes: { href: "/api/recipes?authorId=2" }
+        '400':
+          description: Netinkamas naudotojo ID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 400
+                  message: "Netinkamas userId: turi būti teigiamas sveikasis skaičius"
+                  details: null
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+
+  /users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    delete:
+      tags: [Naudotojai]
+      summary: Ištrinti naudotojo paskyrą
+      description: |
+        Kartu su naudotoju duomenų bazė (ON DELETE CASCADE) ištrina jo receptus, jo parašytus
+        atsiliepimus ir atsiliepimus po jo receptais. 2 laboratoriniame darbe šis metodas bus tik administratoriui.
+      responses:
+        '204':
+          description: Naudotojas ištrintas (atsakymo kūno nėra)
+        '400':
+          description: Netinkamas naudotojo ID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 400
+                  message: "Netinkamas userId: turi būti teigiamas sveikasis skaičius"
+                  details: null
+        '404':
+          $ref: '#/components/responses/UserNotFound'
