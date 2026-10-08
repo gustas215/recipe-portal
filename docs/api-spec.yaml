@@ -944,3 +944,245 @@ paths:
                   status: 400
                   message: Parametras categoryId turi būti teigiamas sveikasis skaičius
                   details: null
+
+                    /categories/{categoryId}/recipes/{recipeId}/comments:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/RecipeId'
+    get:
+      tags: [Atsiliepimai]
+      summary: Recepto atsiliepimų sąrašas
+      description: |
+        Hierarchinis metodas, apimantis visus tris objektus: kategoriją, receptą ir atsiliepimus.
+        Grąžina puslapiuojamą recepto atsiliepimų sąrašą, naujausi pirmi.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: minRating
+          in: query
+          description: Tik atsiliepimai, kurių įvertinimas ne mažesnis už nurodytą (1-5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: Atsiliepimų sąrašas (užklausa ?minRating=5)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentList' }
+              example:
+                data:
+                  - id: 5
+                    recipeId: 3
+                    authorId: 3
+                    text: "Pirmą kartą pavyko, kad cepelinai neišvirtų. Tešla tobula, įdaras sultingas."
+                    rating: 5
+                    createdAt: "2026-10-08T12:54:19.224Z"
+                    updatedAt: "2026-10-08T12:54:19.224Z"
+                    author: { id: 3, username: ruta }
+                    _links:
+                      self: { href: /api/categories/2/recipes/3/comments/5 }
+                      collection: { href: /api/categories/2/recipes/3/comments }
+                      recipe: { href: /api/categories/2/recipes/3 }
+                pagination: { page: 1, limit: 10, totalItems: 1, totalPages: 1 }
+                _links:
+                  self: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
+                  first: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
+                  last: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
+        '400':
+          description: Netinkamas ID arba netinkamas puslapiavimo ar minRating parametras
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 400
+                  message: Parametras minRating turi būti nuo 1 iki 5
+                  details: null
+        '404':
+          $ref: '#/components/responses/RecipeNotFound'
+    post:
+      tags: [Atsiliepimai]
+      summary: Sukurti atsiliepimą
+      description: |
+        Prideda atsiliepimą (tekstą ir įvertinimą 1-5) receptui. 1 laboratoriniame darbe autorius
+        nurodomas kūne (authorId), nuo 2 laboratorinio jis bus imamas iš žetono.
+        Taisyklės: recepto autorius negali vertinti savo recepto (403), vienas naudotojas
+        vienam receptui gali palikti tik vieną atsiliepimą (409).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentCreateInput' }
+            example:
+              text: "Labai skanus kugelis, pavyko iš pirmo karto."
+              rating: 4
+              authorId: 4
+      responses:
+        '201':
+          description: Atsiliepimas sukurtas. Antraštė Location nurodo naujo atsiliepimo adresą.
+          headers:
+            Location:
+              description: Naujo atsiliepimo adresas
+              schema:
+                type: string
+                example: /api/categories/2/recipes/4/comments/18
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+              example:
+                id: 18
+                recipeId: 4
+                authorId: 4
+                text: "Labai skanus kugelis, pavyko iš pirmo karto."
+                rating: 4
+                createdAt: "2026-10-08T13:26:27.210Z"
+                updatedAt: "2026-10-08T13:26:27.210Z"
+                author: { id: 4, username: mantas }
+                _links:
+                  self: { href: /api/categories/2/recipes/4/comments/18 }
+                  collection: { href: /api/categories/2/recipes/4/comments }
+                  recipe: { href: /api/categories/2/recipes/4 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Recepto autorius bando vertinti savo receptą
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 403
+                  message: Recepto autorius negali vertinti savo recepto
+                  details: null
+        '404':
+          $ref: '#/components/responses/RecipeNotFound'
+        '409':
+          description: Šis naudotojas šiam receptui atsiliepimą jau yra palikęs
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 409
+                  message: Šiam receptui atsiliepimą jau esate palikę
+                  details: null
+        '422':
+          description: Netinkami laukai arba autorius (authorId) neegzistuoja
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                invalidFields:
+                  summary: Netinkami laukai
+                  value:
+                    error:
+                      status: 422
+                      message: Neteisingi duomenys
+                      details:
+                        - field: text
+                          message: Tekstas turi būti bent 3 simbolių
+                        - field: rating
+                          message: Įvertinimas turi būti nuo 1 iki 5
+                authorNotFound:
+                  summary: Autorius neegzistuoja
+                  value:
+                    error:
+                      status: 422
+                      message: Neteisingi duomenys
+                      details:
+                        - field: authorId
+                          message: Naudotojas nerastas
+
+  /categories/{categoryId}/recipes/{recipeId}/comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/RecipeId'
+      - $ref: '#/components/parameters/CommentId'
+    get:
+      tags: [Atsiliepimai]
+      summary: Gauti atsiliepimą
+      description: |
+        Atsiliepimas ieškomas tik nurodyto recepto viduje. Jei atsiliepimas egzistuoja,
+        bet priklauso kitam receptui, grąžinamas 404 (pvz. atsiliepimas 1 per receptą 3).
+      responses:
+        '200':
+          description: Atsiliepimas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+              example:
+                id: 5
+                recipeId: 3
+                authorId: 3
+                text: "Pirmą kartą pavyko, kad cepelinai neišvirtų. Tešla tobula, įdaras sultingas."
+                rating: 5
+                createdAt: "2026-10-08T12:54:19.224Z"
+                updatedAt: "2026-10-08T12:54:19.224Z"
+                author: { id: 3, username: ruta }
+                _links:
+                  self: { href: /api/categories/2/recipes/3/comments/5 }
+                  collection: { href: /api/categories/2/recipes/3/comments }
+                  recipe: { href: /api/categories/2/recipes/3 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CommentNotFound'
+    put:
+      tags: [Atsiliepimai]
+      summary: Pakeisti atsiliepimą
+      description: Pakeičia tik tekstą ir įvertinimą. Recepto ir autoriaus pakeisti negalima.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentInput' }
+            example:
+              text: "Pakartojau, dar skaniau su grietine."
+              rating: 5
+      responses:
+        '200':
+          description: Atsiliepimas atnaujintas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+              example:
+                id: 18
+                recipeId: 4
+                authorId: 4
+                text: "Pakartojau, dar skaniau su grietine."
+                rating: 5
+                createdAt: "2026-10-08T13:26:27.210Z"
+                updatedAt: "2026-10-08T13:26:30.492Z"
+                author: { id: 4, username: mantas }
+                _links:
+                  self: { href: /api/categories/2/recipes/4/comments/18 }
+                  collection: { href: /api/categories/2/recipes/4/comments }
+                  recipe: { href: /api/categories/2/recipes/4 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CommentNotFound'
+        '422':
+          description: Netinkami laukai
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: rating
+                      message: Įvertinimas turi būti nuo 1 iki 5
+    delete:
+      tags: [Atsiliepimai]
+      summary: Ištrinti atsiliepimą
+      responses:
+        '204':
+          description: Atsiliepimas ištrintas (atsakymo kūno nėra)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CommentNotFound'
