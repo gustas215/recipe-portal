@@ -1,3 +1,4 @@
+const categoriesRouter = require('./routes/categories');
 const express = require('express');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
@@ -18,7 +19,8 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Čia vėliau bus prijungiami maršrutai: app.use('/api/categories', ...)
+
+app.use('/api/categories', categoriesRouter);
 
 // Šios dvi eilutės visada turi būti paskutinės
 app.use(notFound);
