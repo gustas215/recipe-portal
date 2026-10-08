@@ -1,0 +1,946 @@
+openapi: 3.0.3
+info:
+  title: Receptų portalo API
+  version: 1.0.0
+  description: |
+    REST API receptų portalui. Objektų hierarchija: kategorija → receptas → atsiliepimas.
+
+    Visi atsakymai grąžinami JSON formatu, įskaitant klaidas. Klaidos formatas:
+    `{ "error": { "status": 404, "message": "...", "details": null } }`.
+
+    Sąrašai puslapiuojami (`page`, `limit`) ir turi hypermedia nuorodas `_links`.
+
+    Pastaba: 1 laboratoriniame darbe autentifikacijos nėra, todėl recepto ir atsiliepimo
+    autorius nurodomas užklausos kūne (`authorId`). 2 laboratoriniame darbe autorius bus
+    imamas iš žetono, o dalis metodų bus prieinami tik tam tikroms rolėms.
+servers:
+  - url: http://localhost:3000/api
+    description: Vietinė aplinka
+tags:
+  - name: Kategorijos
+    description: Receptų kategorijos
+  - name: Receptai
+    description: Receptai kategorijos viduje ir bendras receptų sąrašas
+  - name: Atsiliepimai
+    description: Recepto atsiliepimai (komentaras kartu su įvertinimu 1-5)
+  - name: Naudotojai
+    description: Naudotojų sąrašas, skydelis ir šalinimas
+
+components:
+  parameters:
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      description: Kategorijos ID
+      schema:
+        type: integer
+        minimum: 1
+        example: 2
+    RecipeId:
+      name: recipeId
+      in: path
+      required: true
+      description: Recepto ID
+      schema:
+        type: integer
+        minimum: 1
+        example: 3
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      description: Atsiliepimo ID
+      schema:
+        type: integer
+        minimum: 1
+        example: 5
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: Naudotojo ID
+      schema:
+        type: integer
+        minimum: 1
+        example: 2
+    Page:
+      name: page
+      in: query
+      description: Puslapio numeris (nuo 1)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      description: Įrašų kiekis puslapyje. Numatytasis 10, daugiausia 50 (didesnė reikšmė sumažinama iki 50).
+      schema:
+        type: integer
+        minimum: 1
+        default: 10
+
+  schemas:
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+          example: /api/categories/1
+    ListLinks:
+      type: object
+      description: Puslapiavimo nuorodos. `prev` ir `next` pateikiamos tik tada, kai yra kur eiti.
+      properties:
+        self: { $ref: '#/components/schemas/Link' }
+        first: { $ref: '#/components/schemas/Link' }
+        last: { $ref: '#/components/schemas/Link' }
+        prev: { $ref: '#/components/schemas/Link' }
+        next: { $ref: '#/components/schemas/Link' }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 10 }
+        totalItems: { type: integer, example: 6 }
+        totalPages: { type: integer, example: 1 }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status: { type: integer, example: 404 }
+            message: { type: string }
+            details:
+              type: array
+              nullable: true
+              description: Laukų klaidos (409 ir 422 atvejais), kitais atvejais null
+              items:
+                type: object
+                properties:
+                  field: { type: string, example: name }
+                  message: { type: string }
+    UserRef:
+      type: object
+      description: Trumpa informacija apie autorių
+      properties:
+        id: { type: integer, example: 2 }
+        username: { type: string, example: jonas }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Sriubos }
+        description: { type: string }
+        imageUrl: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        _links:
+          type: object
+          properties:
+            self: { $ref: '#/components/schemas/Link' }
+            collection: { $ref: '#/components/schemas/Link' }
+            recipes: { $ref: '#/components/schemas/Link' }
+    CategoryInput:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100, example: Gerimai }
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          example: "Arbatos, kompotai ir kiti gerimai."
+        imageUrl:
+          type: string
+          format: uri
+          maxLength: 500
+          nullable: true
+          description: http arba https adresas. Jei nenurodomas, išsaugoma null.
+    CategoryList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Category' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+        _links: { $ref: '#/components/schemas/ListLinks' }
+
+    Recipe:
+      type: object
+      properties:
+        id: { type: integer, example: 3 }
+        categoryId: { type: integer, example: 2 }
+        authorId: { type: integer, example: 2 }
+        title: { type: string, example: Cepelinai su mėsa }
+        description: { type: string }
+        ingredients:
+          type: string
+          description: Ingredientai, kiekvienas naujoje eilutėje
+          example: "2 kg žalių bulvių\n500 g virtų bulvių\n500 g kiaulienos faršo"
+        prepTimeMinutes: { type: integer, example: 120 }
+        difficulty: { type: string, enum: [easy, medium, hard], example: hard }
+        servings: { type: integer, example: 6 }
+        imageUrl: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        author: { $ref: '#/components/schemas/UserRef' }
+        category:
+          type: object
+          description: Pateikiama tik bendrame sąraše GET /recipes
+          properties:
+            id: { type: integer, example: 2 }
+            name: { type: string, example: Karšti patiekalai }
+        commentCount: { type: integer, example: 2 }
+        averageRating:
+          type: number
+          nullable: true
+          description: Atsiliepimų įvertinimų vidurkis, null jei atsiliepimų nėra
+          example: 4.5
+        _links:
+          type: object
+          properties:
+            self: { $ref: '#/components/schemas/Link' }
+            collection: { $ref: '#/components/schemas/Link' }
+            category: { $ref: '#/components/schemas/Link' }
+            comments: { $ref: '#/components/schemas/Link' }
+    RecipeInput:
+      type: object
+      required: [title, description, ingredients, prepTimeMinutes, difficulty, servings]
+      properties:
+        title: { type: string, minLength: 2, maxLength: 150, example: Sumustiniai su lašiša }
+        description: { type: string, minLength: 10, maxLength: 5000 }
+        ingredients: { type: string, minLength: 3, maxLength: 3000 }
+        prepTimeMinutes: { type: integer, minimum: 1, maximum: 10000, example: 10 }
+        difficulty: { type: string, enum: [easy, medium, hard], example: easy }
+        servings: { type: integer, minimum: 1, maximum: 100, example: 2 }
+        imageUrl:
+          type: string
+          format: uri
+          maxLength: 500
+          nullable: true
+    RecipeCreateInput:
+      description: Kaip RecipeInput, bet su autoriumi (tik 1 laboratoriniame darbe)
+      allOf:
+        - $ref: '#/components/schemas/RecipeInput'
+        - type: object
+          required: [authorId]
+          properties:
+            authorId: { type: integer, minimum: 1, example: 2 }
+    RecipeList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Recipe' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+        _links: { $ref: '#/components/schemas/ListLinks' }
+
+    Comment:
+      type: object
+      properties:
+        id: { type: integer, example: 5 }
+        recipeId: { type: integer, example: 3 }
+        authorId: { type: integer, example: 3 }
+        text: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 5, example: 5 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        author: { $ref: '#/components/schemas/UserRef' }
+        _links:
+          type: object
+          properties:
+            self: { $ref: '#/components/schemas/Link' }
+            collection: { $ref: '#/components/schemas/Link' }
+            recipe: { $ref: '#/components/schemas/Link' }
+    CommentInput:
+      type: object
+      required: [text, rating]
+      properties:
+        text: { type: string, minLength: 3, maxLength: 2000 }
+        rating: { type: integer, minimum: 1, maximum: 5, example: 4 }
+    CommentCreateInput:
+      description: Kaip CommentInput, bet su autoriumi (tik 1 laboratoriniame darbe)
+      allOf:
+        - $ref: '#/components/schemas/CommentInput'
+        - type: object
+          required: [authorId]
+          properties:
+            authorId: { type: integer, minimum: 1, example: 4 }
+    CommentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Comment' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+        _links: { $ref: '#/components/schemas/ListLinks' }
+
+    User:
+      type: object
+      description: Naudotojas. Slaptažodžio hash niekada negrąžinamas.
+      properties:
+        id: { type: integer, example: 2 }
+        username: { type: string, example: jonas }
+        email: { type: string, example: jonas@example.com }
+        role: { type: string, enum: [user, admin], example: user }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        _links:
+          type: object
+          properties:
+            collection: { $ref: '#/components/schemas/Link' }
+            dashboard: { $ref: '#/components/schemas/Link' }
+            recipes: { $ref: '#/components/schemas/Link' }
+    UserList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+        _links: { $ref: '#/components/schemas/ListLinks' }
+    Dashboard:
+      type: object
+      description: Resursas, sudarytas iš trijų esybių (naudotojas, jo receptai, jo receptų gauti atsiliepimai)
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        stats:
+          type: object
+          properties:
+            recipeCount: { type: integer, example: 3 }
+            receivedCommentCount: { type: integer, example: 6 }
+            averageRating: { type: number, nullable: true, example: 4.5 }
+        recipes:
+          type: array
+          items: { $ref: '#/components/schemas/Recipe' }
+        receivedComments:
+          type: array
+          description: Tik 10 naujausių atsiliepimų, bendras kiekis yra stats.receivedCommentCount
+          items: { $ref: '#/components/schemas/Comment' }
+        _links:
+          type: object
+          properties:
+            self: { $ref: '#/components/schemas/Link' }
+            recipes: { $ref: '#/components/schemas/Link' }
+
+  responses:
+    BadRequest:
+      description: Netinkamas ID, netinkamas užklausos parametras arba sugadintas JSON
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 400
+              message: "Netinkamas categoryId: turi būti teigiamas sveikasis skaičius"
+              details: null
+    Unprocessable:
+      description: JSON teisingas, bet laukų reikšmės netinkamos. Klaidos išvardytos details lauke.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 422
+              message: Neteisingi duomenys
+              details:
+                - field: name
+                  message: Pavadinimas turi būti bent 2 simbolių
+                - field: description
+                  message: Aprašymas privalomas
+    CategoryNotFound:
+      description: Kategorija nerasta
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 404
+              message: Kategorija nerasta
+              details: null
+    RecipeNotFound:
+      description: Kategorija nerasta arba receptas nepriklauso šiai kategorijai
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 404
+              message: Receptas nerastas šioje kategorijoje
+              details: null
+    CommentNotFound:
+      description: Kategorija ar receptas nerasti arba atsiliepimas nepriklauso šiam receptui
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 404
+              message: Atsiliepimas nerastas šiame recepte
+              details: null
+    UserNotFound:
+      description: Naudotojas nerastas
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 404
+              message: Naudotojas nerastas
+              details: null
+
+paths:
+  /categories:
+    get:
+      tags: [Kategorijos]
+      summary: Kategorijų sąrašas
+      description: Grąžina puslapiuojamą kategorijų sąrašą, surikiuotą pagal pavadinimą.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: search
+          in: query
+          description: Paieška pagal kategorijos pavadinimą (be didžiųjų ir mažųjų raidžių skirtumo)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Kategorijų sąrašas (užklausa ?limit=2)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryList' }
+              example:
+                data:
+                  - id: 3
+                    name: Desertai
+                    description: "Saldūs patiekalai ir kepiniai arbatai, šventėms ir kasdienai."
+                    imageUrl: null
+                    createdAt: "2026-10-08T12:54:18.193Z"
+                    updatedAt: "2026-10-08T12:54:18.193Z"
+                    _links:
+                      self: { href: /api/categories/3 }
+                      collection: { href: /api/categories }
+                      recipes: { href: /api/categories/3/recipes }
+                  - id: 2
+                    name: Karšti patiekalai
+                    description: "Tradiciniai lietuviški pietų patiekalai iš bulvių, mėsos ir daržovių."
+                    imageUrl: null
+                    createdAt: "2026-10-08T12:54:18.138Z"
+                    updatedAt: "2026-10-08T12:54:18.138Z"
+                    _links:
+                      self: { href: /api/categories/2 }
+                      collection: { href: /api/categories }
+                      recipes: { href: /api/categories/2/recipes }
+                pagination: { page: 1, limit: 2, totalItems: 6, totalPages: 3 }
+                _links:
+                  self: { href: /api/categories?limit=2&page=1 }
+                  first: { href: /api/categories?limit=2&page=1 }
+                  last: { href: /api/categories?limit=2&page=3 }
+                  next: { href: /api/categories?limit=2&page=2 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Kategorijos]
+      summary: Sukurti kategoriją
+      description: Sukuria naują kategoriją. Pavadinimas turi būti unikalus.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+            example:
+              name: Gerimai
+              description: "Arbatos, kompotai ir kiti gerimai."
+      responses:
+        '201':
+          description: Kategorija sukurta. Antraštė Location nurodo naujo resurso adresą.
+          headers:
+            Location:
+              description: Naujos kategorijos adresas
+              schema:
+                type: string
+                example: /api/categories/7
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Category' }
+              example:
+                id: 7
+                name: Gerimai
+                description: "Arbatos, kompotai ir kiti gerimai."
+                imageUrl: null
+                createdAt: "2026-10-08T13:10:21.885Z"
+                updatedAt: "2026-10-08T13:10:21.885Z"
+                _links:
+                  self: { href: /api/categories/7 }
+                  collection: { href: /api/categories }
+                  recipes: { href: /api/categories/7/recipes }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Kategorija tokiu pavadinimu jau yra
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 409
+                  message: Tokia reikšmė jau naudojama
+                  details:
+                    - field: name
+                      message: name must be unique
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Kategorijos]
+      summary: Gauti kategoriją
+      responses:
+        '200':
+          description: Kategorija
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Category' }
+              example:
+                id: 1
+                name: Sriubos
+                description: "Šaltos ir karštos sriubos: nuo vasaros šaltibarščių iki sočių žiemos sriubų."
+                imageUrl: null
+                createdAt: "2026-10-08T12:54:18.081Z"
+                updatedAt: "2026-10-08T12:54:18.081Z"
+                _links:
+                  self: { href: /api/categories/1 }
+                  collection: { href: /api/categories }
+                  recipes: { href: /api/categories/1/recipes }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CategoryNotFound'
+    put:
+      tags: [Kategorijos]
+      summary: Pakeisti kategoriją
+      description: Pakeičia visą kategoriją. Neišsiųstas imageUrl tampa null.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+            example:
+              name: Gerimai
+              description: "Arbatos, sultys ir kompotai."
+      responses:
+        '200':
+          description: Kategorija atnaujinta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Category' }
+              example:
+                id: 7
+                name: Gerimai
+                description: "Arbatos, sultys ir kompotai."
+                imageUrl: null
+                createdAt: "2026-10-08T13:10:21.885Z"
+                updatedAt: "2026-10-08T13:10:28.679Z"
+                _links:
+                  self: { href: /api/categories/7 }
+                  collection: { href: /api/categories }
+                  recipes: { href: /api/categories/7/recipes }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CategoryNotFound'
+        '409':
+          description: Kita kategorija tokiu pavadinimu jau yra
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 409
+                  message: Tokia reikšmė jau naudojama
+                  details:
+                    - field: name
+                      message: name must be unique
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      tags: [Kategorijos]
+      summary: Ištrinti kategoriją
+      description: Ištrinti galima tik kategoriją, kurioje nėra receptų.
+      responses:
+        '204':
+          description: Kategorija ištrinta (atsakymo kūno nėra)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CategoryNotFound'
+        '409':
+          description: Kategorijoje yra receptų
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 409
+                  message: Kategorijos, kurioje yra receptų, ištrinti negalima
+                  details: null
+
+
+
+                  
+  /categories/{categoryId}/recipes:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Receptai]
+      summary: Kategorijos receptų sąrašas
+      description: |
+        Grąžina puslapiuojamą šios kategorijos receptų sąrašą, naujausi pirmi.
+        Filtrai taikomi kartu. Kiekvienas receptas turi commentCount ir averageRating.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: difficulty
+          in: query
+          description: Sudėtingumas
+          schema:
+            type: string
+            enum: [easy, medium, hard]
+        - name: maxTime
+          in: query
+          description: Didžiausias gaminimo laikas minutėmis (imtinai)
+          schema:
+            type: integer
+            minimum: 1
+        - name: search
+          in: query
+          description: Paieška pagal recepto pavadinimą (be didžiųjų ir mažųjų raidžių skirtumo)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Receptų sąrašas (užklausa ?search=cepel)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeList' }
+              example:
+                data:
+                  - id: 3
+                    categoryId: 2
+                    authorId: 2
+                    title: Cepelinai su mėsa
+                    description: "Žalias bulves sutarkuokite ir nuspauskite sultis, nusistovėjusį krakmolą grąžinkite į tarkį. Įmaišykite virtų bulvių košę ir druskos. Faršą pakepinkite su svogūnu, pagardinkite. Iš bulvių masės suformuokite blynelius, į vidurį dėkite faršo ir uždarykite į ovalo formos cepeliną. Virkite pasūdytame vandenyje apie 25 minutes. Patiekite su grietine ir spirgučiais."
+                    ingredients: "2 kg žalių bulvių\n500 g virtų bulvių\n500 g kiaulienos faršo\n1 svogūnas\n200 g grietinės\n100 g spirgučių\ndruskos ir pipirų"
+                    prepTimeMinutes: 120
+                    difficulty: hard
+                    servings: 6
+                    imageUrl: null
+                    createdAt: "2026-10-08T12:54:18.541Z"
+                    updatedAt: "2026-10-08T12:54:18.541Z"
+                    author: { id: 2, username: jonas }
+                    commentCount: 2
+                    averageRating: 4.5
+                    _links:
+                      self: { href: /api/categories/2/recipes/3 }
+                      collection: { href: /api/categories/2/recipes }
+                      category: { href: /api/categories/2 }
+                      comments: { href: /api/categories/2/recipes/3/comments }
+                pagination: { page: 1, limit: 10, totalItems: 1, totalPages: 1 }
+                _links:
+                  self: { href: "/api/categories/2/recipes?search=cepel&page=1" }
+                  first: { href: "/api/categories/2/recipes?search=cepel&page=1" }
+                  last: { href: "/api/categories/2/recipes?search=cepel&page=1" }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CategoryNotFound'
+    post:
+      tags: [Receptai]
+      summary: Sukurti receptą kategorijoje
+      description: |
+        Sukuria receptą šioje kategorijoje. 1 laboratoriniame darbe autorius nurodomas
+        kūne (authorId), nuo 2 laboratorinio jis bus imamas iš žetono.
+        Kategorija tikrinama prieš validaciją, todėl neegzistuojančiai kategorijai visada grąžinamas 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecipeCreateInput' }
+            example:
+              title: Sumustiniai su lašiša
+              description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
+              ingredients: "4 riekės duonos\n100 g lašišos\n1 agurkas"
+              prepTimeMinutes: 10
+              difficulty: easy
+              servings: 2
+              authorId: 2
+      responses:
+        '201':
+          description: Receptas sukurtas. Antraštė Location nurodo naujo recepto adresą.
+          headers:
+            Location:
+              description: Naujo recepto adresas
+              schema:
+                type: string
+                example: /api/categories/5/recipes/11
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recipe' }
+              example:
+                id: 11
+                categoryId: 5
+                authorId: 2
+                title: Sumustiniai su lašiša
+                description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
+                ingredients: "4 riekės duonos\n100 g lašišos\n1 agurkas"
+                prepTimeMinutes: 10
+                difficulty: easy
+                servings: 2
+                imageUrl: null
+                createdAt: "2026-10-08T13:19:21.543Z"
+                updatedAt: "2026-10-08T13:19:21.543Z"
+                author: { id: 2, username: jonas }
+                commentCount: 0
+                averageRating: null
+                _links:
+                  self: { href: /api/categories/5/recipes/11 }
+                  collection: { href: /api/categories/5/recipes }
+                  category: { href: /api/categories/5 }
+                  comments: { href: /api/categories/5/recipes/11/comments }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/CategoryNotFound'
+        '422':
+          description: Netinkami laukai arba autorius (authorId) neegzistuoja
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                invalidFields:
+                  summary: Netinkami laukai
+                  value:
+                    error:
+                      status: 422
+                      message: Neteisingi duomenys
+                      details:
+                        - field: title
+                          message: Pavadinimas turi būti bent 2 simbolių
+                        - field: prepTimeMinutes
+                          message: Gaminimo laikas turi būti bent 1 minutė
+                        - field: difficulty
+                          message: Sudėtingumas turi būti easy, medium arba hard
+                authorNotFound:
+                  summary: Autorius neegzistuoja
+                  value:
+                    error:
+                      status: 422
+                      message: Neteisingi duomenys
+                      details:
+                        - field: authorId
+                          message: Naudotojas nerastas
+
+  /categories/{categoryId}/recipes/{recipeId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/RecipeId'
+    get:
+      tags: [Receptai]
+      summary: Gauti receptą
+      description: |
+        Receptas ieškomas tik nurodytos kategorijos viduje. Jei receptas egzistuoja,
+        bet priklauso kitai kategorijai, grąžinamas 404 (pvz. receptas 3 per kategoriją 1).
+      responses:
+        '200':
+          description: Receptas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recipe' }
+              example:
+                id: 3
+                categoryId: 2
+                authorId: 2
+                title: Cepelinai su mėsa
+                description: "Žalias bulves sutarkuokite ir nuspauskite sultis, nusistovėjusį krakmolą grąžinkite į tarkį. Įmaišykite virtų bulvių košę ir druskos. Faršą pakepinkite su svogūnu, pagardinkite. Iš bulvių masės suformuokite blynelius, į vidurį dėkite faršo ir uždarykite į ovalo formos cepeliną. Virkite pasūdytame vandenyje apie 25 minutes. Patiekite su grietine ir spirgučiais."
+                ingredients: "2 kg žalių bulvių\n500 g virtų bulvių\n500 g kiaulienos faršo\n1 svogūnas\n200 g grietinės\n100 g spirgučių\ndruskos ir pipirų"
+                prepTimeMinutes: 120
+                difficulty: hard
+                servings: 6
+                imageUrl: null
+                createdAt: "2026-10-08T12:54:18.541Z"
+                updatedAt: "2026-10-08T12:54:18.541Z"
+                author: { id: 2, username: jonas }
+                commentCount: 2
+                averageRating: 4.5
+                _links:
+                  self: { href: /api/categories/2/recipes/3 }
+                  collection: { href: /api/categories/2/recipes }
+                  category: { href: /api/categories/2 }
+                  comments: { href: /api/categories/2/recipes/3/comments }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/RecipeNotFound'
+    put:
+      tags: [Receptai]
+      summary: Pakeisti receptą
+      description: |
+        Pakeičia visą receptą. Autoriaus ir kategorijos pakeisti negalima, atsiųsti
+        authorId ar categoryId laukai ignoruojami. Neišsiųstas imageUrl tampa null.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecipeInput' }
+            example:
+              title: Sumustiniai su lašiša ir agurkais
+              description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
+              ingredients: "4 riekės duonos\n100 g lašišos\n1 agurkas\nkrapų"
+              prepTimeMinutes: 15
+              difficulty: easy
+              servings: 4
+      responses:
+        '200':
+          description: Receptas atnaujintas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Recipe' }
+              example:
+                id: 11
+                categoryId: 5
+                authorId: 2
+                title: Sumustiniai su lašiša ir agurkais
+                description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
+                ingredients: "4 riekės duonos\n100 g lašišos\n1 agurkas\nkrapų"
+                prepTimeMinutes: 15
+                difficulty: easy
+                servings: 4
+                imageUrl: null
+                createdAt: "2026-10-08T13:19:21.543Z"
+                updatedAt: "2026-10-08T13:19:22.689Z"
+                author: { id: 2, username: jonas }
+                commentCount: 0
+                averageRating: null
+                _links:
+                  self: { href: /api/categories/5/recipes/11 }
+                  collection: { href: /api/categories/5/recipes }
+                  category: { href: /api/categories/5 }
+                  comments: { href: /api/categories/5/recipes/11/comments }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/RecipeNotFound'
+        '422':
+          description: Netinkami laukai
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: servings
+                      message: Porcijų kiekis turi būti skaičius
+    delete:
+      tags: [Receptai]
+      summary: Ištrinti receptą
+      description: Kartu ištrinami ir recepto atsiliepimai (ON DELETE CASCADE).
+      responses:
+        '204':
+          description: Receptas ištrintas (atsakymo kūno nėra)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/RecipeNotFound'
+
+  /recipes:
+    get:
+      tags: [Receptai]
+      summary: Visų receptų sąrašas
+      description: |
+        Visų kategorijų receptai viename sąraše (pagrindiniam puslapiui). Filtrai tie patys,
+        kaip kategorijos viduje, plius categoryId ir authorId. Filtras, kuris nieko neranda,
+        grąžina 200 su tuščiu data, o ne klaidą. Kiekvienas receptas turi ir kategorijos id bei pavadinimą.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: categoryId
+          in: query
+          description: Tik šios kategorijos receptai
+          schema:
+            type: integer
+            minimum: 1
+        - name: authorId
+          in: query
+          description: Tik šio autoriaus receptai
+          schema:
+            type: integer
+            minimum: 1
+        - name: difficulty
+          in: query
+          description: Sudėtingumas
+          schema:
+            type: string
+            enum: [easy, medium, hard]
+        - name: maxTime
+          in: query
+          description: Didžiausias gaminimo laikas minutėmis (imtinai)
+          schema:
+            type: integer
+            minimum: 1
+        - name: search
+          in: query
+          description: Paieška pagal recepto pavadinimą (be didžiųjų ir mažųjų raidžių skirtumo)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Receptų sąrašas (užklausa ?authorId=2&limit=1)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeList' }
+              example:
+                data:
+                  - id: 8
+                    categoryId: 4
+                    authorId: 2
+                    title: Bulviniai blynai
+                    description: "Bulves ir svogūną smulkiai sutarkuokite, nusunkite skystį. Įmaišykite kiaušinį, miltus ir druską. Šaukštu dėkite masę į įkaitintą aliejų ir kepkite iš abiejų pusių, kol gražiai apskrus. Patiekite su grietine."
+                    ingredients: "1 kg bulvių\n1 svogūnas\n1 kiaušinis\n2 šaukštai miltų\naliejaus kepimui\ndruskos pagal skonį\ngrietinės patiekimui"
+                    prepTimeMinutes: 40
+                    difficulty: easy
+                    servings: 4
+                    imageUrl: null
+                    createdAt: "2026-10-08T13:28:33.824Z"
+                    updatedAt: "2026-10-08T13:28:33.824Z"
+                    author: { id: 2, username: jonas }
+                    category: { id: 4, name: Vegetariški patiekalai }
+                    commentCount: 2
+                    averageRating: 4.5
+                    _links:
+                      self: { href: /api/categories/4/recipes/8 }
+                      collection: { href: /api/categories/4/recipes }
+                      category: { href: /api/categories/4 }
+                      comments: { href: /api/categories/4/recipes/8/comments }
+                pagination: { page: 1, limit: 1, totalItems: 3, totalPages: 3 }
+                _links:
+                  self: { href: "/api/recipes?authorId=2&limit=1&page=1" }
+                  first: { href: "/api/recipes?authorId=2&limit=1&page=1" }
+                  last: { href: "/api/recipes?authorId=2&limit=1&page=3" }
+                  next: { href: "/api/recipes?authorId=2&limit=1&page=2" }
+        '400':
+          description: Netinkamas puslapiavimo ar filtro parametras
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 400
+                  message: Parametras categoryId turi būti teigiamas sveikasis skaičius
+                  details: null
