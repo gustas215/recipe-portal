@@ -26,4 +26,4 @@ function buildPagination(page, limit, totalItems) {
   return { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) };
 }
 
-module.exports = { getPagination, buildPagination };
+module.exports = { getPagination, buildPagination, parsePositiveInt };
