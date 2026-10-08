@@ -102,4 +102,4 @@ async function remove(req, res) {
   res.status(204).send();
 }
 
-module.exports = { list, getOne, create, update, remove };
+module.exports = { list, getOne, create, update, remove, toResource };

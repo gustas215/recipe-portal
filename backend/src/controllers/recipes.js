@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Recipe, User } = require('../models');
+const { Recipe, User, Category } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { getPagination, buildPagination, parsePositiveInt } = require('../utils/pagination');
 const { buildListLinks } = require('../utils/links');
@@ -46,7 +46,42 @@ function buildWhere(query) {
   return where;
 }
 
-// GET /api/categories/:categoryId/recipes
+// GET /api/categories/:categoryId/recipes  
+// GET /api/recipes?categoryId=2&authorId=3&difficulty=easy&maxTime=60&search=sriuba
+// Visų receptų sąrašas pagrindiniam puslapiui. Filtrai tie patys, kaip kategorijos viduje, plius categoryId ir authorId.
+async function listAll(req, res) {
+  const { page, limit, offset } = getPagination(req.query);
+  const where = buildWhere(req.query);
+
+  if (req.query.categoryId !== undefined) {
+    where.categoryId = parsePositiveInt(req.query.categoryId, 'categoryId');
+  }
+  if (req.query.authorId !== undefined) {
+    where.authorId = parsePositiveInt(req.query.authorId, 'authorId');
+  }
+
+  const { rows, count } = await Recipe.findAndCountAll({
+    where,
+    include: [recipeAuthorInclude, { model: Category, as: 'category', attributes: ['id', 'name'] }],
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
+    limit,
+    offset,
+  });
+
+  const stats = await getRatingStats(rows.map((recipe) => recipe.id));
+  const pagination = buildPagination(page, limit, count);
+
+  res.json({
+    data: rows.map((recipe) => toResource(recipe, stats[recipe.id])),
+    pagination,
+    _links: buildListLinks('/api/recipes', req.query, pagination),
+  });
+}
+
+
 async function list(req, res) {
   const { page, limit, offset } = getPagination(req.query);
   const where = { ...buildWhere(req.query), categoryId: req.category.id };
@@ -116,4 +151,4 @@ async function remove(req, res) {
   res.status(204).send();
 }
 
-module.exports = { list, getOne, create, update, remove };
+module.exports = { list, listAll, getOne, create, update, remove, toResource };

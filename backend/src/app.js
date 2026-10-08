@@ -1,5 +1,7 @@
-const categoriesRouter = require('./routes/categories');
 const express = require('express');
+const categoriesRouter = require('./routes/categories');
+const usersRouter = require('./routes/users');
+const recipesController = require('./controllers/recipes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -15,12 +17,16 @@ app.get('/api', (req, res) => {
       self: { href: '/api' },
       categories: { href: '/api/categories' },
       recipes: { href: '/api/recipes' },
+      users: { href: '/api/users' },
     },
   });
 });
 
-
 app.use('/api/categories', categoriesRouter);
+app.use('/api/users', usersRouter);
+
+// Visų receptų sąrašas (be kategorijos kelyje)
+app.get('/api/recipes', recipesController.listAll);
 
 // Šios dvi eilutės visada turi būti paskutinės
 app.use(notFound);
