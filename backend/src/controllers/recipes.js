@@ -115,7 +115,7 @@ async function getOne(req, res) {
 
 // POST /api/categories/:categoryId/recipes
 async function create(req, res) {
-  // Autorius imamas iš žetono. Kūne atsiųstas authorId ignoruojamas (validate jį pašalina).
+  // Autorius imamas iš žetono (req.user). Kūne atsiųstas authorId ignoruojamas.
   const recipe = await Recipe.create({
     ...req.body,
     imageUrl: req.body.imageUrl ?? null,
