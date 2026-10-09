@@ -1,13 +1,45 @@
 {
   "info": {
     "name": "Receptų portalas API",
-    "description": "Visi 19 API metodų ir klaidų atvejai. Prieš paleidimą: npm run seed, tada npm run dev. Aplankas 6 ištrina naudotoją mantas, po jo reikia vėl paleisti npm run seed.",
+    "description": "Visi API metodai su autentifikacija ir autorizacija (JWT). Prieš paleidimą: npm run seed, tada npm run dev. Paleiskite visą kolekciją per Runner (išjunkite „Stop run if an error occurs“): pirmas aplankas prisijungia keturiais naudotojais ir išsaugo žetonus kintamuosiuose. Žetonai galioja 15 min. Aplankas 8 ištrina naudotoją mantas, po jo vėl paleiskite npm run seed.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "jonasToken",
+      "value": ""
+    },
+    {
+      "key": "rutaToken",
+      "value": ""
+    },
+    {
+      "key": "mantasToken",
+      "value": ""
+    },
+    {
+      "key": "testToken1",
+      "value": ""
+    },
+    {
+      "key": "testToken2",
+      "value": ""
+    },
+    {
+      "key": "suffix",
+      "value": ""
+    },
+    {
+      "key": "loginErr",
+      "value": ""
     },
     {
       "key": "newCategoryId",
@@ -19,6 +51,10 @@
     },
     {
       "key": "newCommentId",
+      "value": ""
+    },
+    {
+      "key": "newCommentId2",
       "value": ""
     }
   ],
@@ -46,13 +82,871 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}"
+            "url": "{{baseUrl}}",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
     },
     {
-      "name": "1 Kategorijos",
+      "name": "1 Prisijungimai (žetonai kitiems aplankams)",
+      "item": [
+        {
+          "name": "POST login: admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "const jwtPayload = (t) => JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "pm.test('Yra accessToken ir expiresIn 900', () => { pm.expect(body.accessToken).to.be.a('string'); pm.expect(body.expiresIn).to.eql(900); });",
+                  "pm.test('Žetono viduje: sub = 1, role = admin, yra sid', () => { const p = jwtPayload(body.accessToken); pm.expect(p.sub).to.eql('1'); pm.expect(p.role).to.eql('admin'); pm.expect(p.sid).to.be.a('number'); pm.expect(p).to.have.property('exp'); });",
+                  "pm.test('Atsakyme nėra passwordHash', () => { pm.expect(body.user).to.not.have.property('passwordHash'); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('adminToken', body.accessToken); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: jonas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "const jwtPayload = (t) => JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "pm.test('Yra accessToken ir expiresIn 900', () => { pm.expect(body.accessToken).to.be.a('string'); pm.expect(body.expiresIn).to.eql(900); });",
+                  "pm.test('Žetono viduje: sub = 2, role = user, yra sid', () => { const p = jwtPayload(body.accessToken); pm.expect(p.sub).to.eql('2'); pm.expect(p.role).to.eql('user'); pm.expect(p.sid).to.be.a('number'); pm.expect(p).to.have.property('exp'); });",
+                  "pm.test('Atsakyme nėra passwordHash', () => { pm.expect(body.user).to.not.have.property('passwordHash'); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('jonasToken', body.accessToken); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jonas@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: ruta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "const jwtPayload = (t) => JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "pm.test('Yra accessToken ir expiresIn 900', () => { pm.expect(body.accessToken).to.be.a('string'); pm.expect(body.expiresIn).to.eql(900); });",
+                  "pm.test('Žetono viduje: sub = 3, role = user, yra sid', () => { const p = jwtPayload(body.accessToken); pm.expect(p.sub).to.eql('3'); pm.expect(p.role).to.eql('user'); pm.expect(p.sid).to.be.a('number'); pm.expect(p).to.have.property('exp'); });",
+                  "pm.test('Atsakyme nėra passwordHash', () => { pm.expect(body.user).to.not.have.property('passwordHash'); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('rutaToken', body.accessToken); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ruta@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: mantas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "const jwtPayload = (t) => JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "pm.test('Yra accessToken ir expiresIn 900', () => { pm.expect(body.accessToken).to.be.a('string'); pm.expect(body.expiresIn).to.eql(900); });",
+                  "pm.test('Žetono viduje: sub = 4, role = user, yra sid', () => { const p = jwtPayload(body.accessToken); pm.expect(p.sub).to.eql('4'); pm.expect(p.role).to.eql('user'); pm.expect(p.sid).to.be.a('number'); pm.expect(p).to.have.property('exp'); });",
+                  "pm.test('Atsakyme nėra passwordHash', () => { pm.expect(body.user).to.not.have.property('passwordHash'); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('mantasToken', body.accessToken); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mantas@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "Šie prisijungimai išsaugo access žetonus kolekcijos kintamuosiuose. Žetonai galioja 15 min., todėl visą kolekciją paleiskite iš karto."
+    },
+    {
+      "name": "2 Autentifikacija (register, login, refresh, logout, me)",
+      "item": [
+        {
+          "name": "POST register (sukūrimas)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('suffix', String(Date.now()).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Rolė user, nėra passwordHash', () => { pm.expect(body.role).to.eql('user'); pm.expect(body).to.not.have.property('passwordHash'); });",
+                  "pm.test('Yra id ir _links.login', () => { pm.expect(body.id).to.be.a('number'); pm.expect(body._links).to.have.property('login'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testas{{suffix}}\",\n  \"email\": \"testas{{suffix}}@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST register: bandymas nusistatyti role=admin (ignoruojama)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Rolė vis tiek user', () => { pm.expect(body.role).to.eql('user'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testas{{suffix}}b\",\n  \"email\": \"testas{{suffix}}b@example.com\",\n  \"password\": \"Slaptazodis123!\",\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST register: toks el. paštas jau yra (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 409', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(409);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testas{{suffix}}\",\n  \"email\": \"testas{{suffix}}@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST register: nevalidūs laukai (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 422', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(422);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});",
+                  "pm.test('Klaidos lauke username, email ir password', () => { const f = body.error.details.map(d => d.field); pm.expect(f).to.include.members(['username', 'email', 'password']); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"a\",\n  \"email\": \"blogas\",\n  \"password\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: blogas slaptažodis (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});",
+                  "pm.collectionVariables.set('loginErr', body.error.message);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jonas@example.com\",\n  \"password\": \"blogas-slaptazodis\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: neegzistuojantis el. paštas (401, ta pati žinutė)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});",
+                  "pm.test('Žinutė ta pati kaip su bloga slaptažodžiu', () => { pm.expect(body.error.message).to.eql(pm.collectionVariables.get('loginErr')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nera@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: nevalidūs laukai (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 422', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(422);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST login: naujas naudotojas (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "const jwtPayload = (t) => JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "pm.test('Rolė žetone user', () => { pm.expect(jwtPayload(body.accessToken).role).to.eql('user'); });",
+                  "const setCookie = pm.response.headers.filter(h => h.key.toLowerCase() === 'set-cookie').map(h => h.value).join(' ; ');",
+                  "pm.test('Refresh žetonas cookie: HttpOnly ir Path=/api/auth', () => { pm.expect(setCookie).to.include('refreshToken='); pm.expect(setCookie).to.include('HttpOnly'); pm.expect(setCookie).to.include('Path=/api/auth'); });",
+                  "pm.test('Refresh žetono nėra atsakymo kūne', () => { pm.expect(JSON.stringify(body)).to.not.include('refreshToken'); });",
+                  "pm.collectionVariables.set('testToken1', body.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testas{{suffix}}@example.com\",\n  \"password\": \"Slaptazodis123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET me be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET me su žetonu (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Grąžintas prisijungęs naudotojas', () => { pm.expect(body.role).to.eql('user'); pm.expect(body.username).to.include('testas'); pm.expect(body).to.not.have.property('passwordHash'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{testToken1}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST refresh (200, naujas žetonas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Gautas kitoks access žetonas', () => { pm.expect(body.accessToken).to.be.a('string'); pm.expect(body.accessToken).to.not.eql(pm.collectionVariables.get('testToken1')); });",
+                  "pm.collectionVariables.set('testToken2', body.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/refresh",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET me su senu žetonu po refresh (401, rotacija)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});",
+                  "pm.test('Žinutė: sesija nebegalioja', () => { pm.expect(body.error.message).to.include('Sesija'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{testToken1}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET me su nauju žetonu (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{testToken2}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET me su sugadintu žetonu (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "abc.def.ghi",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST logout (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET me po logout su dar nepasibaigusiu žetonu (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});",
+                  "pm.test('Žinutė: sesija nebegalioja', () => { pm.expect(body.error.message).to.include('Sesija'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{testToken2}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST refresh po logout (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/refresh",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST logout dar kartą (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ],
+      "description": "Registruojamas naujas naudotojas (kiekvieną kartą su kitu vardu), todėl aplanką galima leisti kelis kartus be seed. Refresh žetoną Postman laiko cookie ir siunčia pats."
+    },
+    {
+      "name": "3 Kategorijos",
       "item": [
         {
           "name": "GET kategorijų sąrašas",
@@ -74,7 +968,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories"
+            "url": "{{baseUrl}}/categories",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -97,7 +994,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories?limit=2"
+            "url": "{{baseUrl}}/categories?limit=2",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -120,7 +1020,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories?search=sal"
+            "url": "{{baseUrl}}/categories?search=sal",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -143,7 +1046,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/1"
+            "url": "{{baseUrl}}/categories/1",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -170,7 +1076,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/9999"
+            "url": "{{baseUrl}}/categories/9999",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -197,7 +1106,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/abc"
+            "url": "{{baseUrl}}/categories/abc",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -224,11 +1136,109 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories?page=0"
+            "url": "{{baseUrl}}/categories?page=0",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
-          "name": "POST kategorija (sukūrimas)",
+          "name": "POST kategorija be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gerimai\",\n  \"description\": \"Arbatos, kompotai ir kiti gerimai.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST kategorija: paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gerimai\",\n  \"description\": \"Arbatos, kompotai ir kiti gerimai.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST kategorija: administratorius (sukūrimas)",
           "event": [
             {
               "listen": "test",
@@ -263,6 +1273,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -304,6 +1324,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -346,6 +1376,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -387,11 +1427,116 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
         {
-          "name": "PUT kategorija",
+          "name": "PUT kategorija be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gerimai\",\n  \"description\": \"Arbatos, kompotai ir kiti gerimai.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT kategorija: paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gerimai\",\n  \"description\": \"Arbatos, kompotai ir kiti gerimai.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT kategorija: administratorius",
           "event": [
             {
               "listen": "test",
@@ -424,6 +1569,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -465,6 +1620,83 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE kategorija be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "DELETE kategorija: paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -492,13 +1724,23 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/1"
+            "url": "{{baseUrl}}/categories/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "2 Receptai",
+      "name": "4 Receptai",
       "item": [
         {
           "name": "GET kategorijos 2 receptai",
@@ -520,7 +1762,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes"
+            "url": "{{baseUrl}}/categories/2/recipes",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -543,7 +1788,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes?difficulty=medium"
+            "url": "{{baseUrl}}/categories/2/recipes?difficulty=medium",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -566,7 +1814,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes?maxTime=100"
+            "url": "{{baseUrl}}/categories/2/recipes?maxTime=100",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -589,7 +1840,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes?search=cepel"
+            "url": "{{baseUrl}}/categories/2/recipes?search=cepel",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -612,7 +1866,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3"
+            "url": "{{baseUrl}}/categories/2/recipes/3",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -639,7 +1896,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/1/recipes/3"
+            "url": "{{baseUrl}}/categories/1/recipes/3",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -666,7 +1926,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/9999/recipes"
+            "url": "{{baseUrl}}/categories/9999/recipes",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -693,7 +1956,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes?difficulty=super"
+            "url": "{{baseUrl}}/categories/2/recipes?difficulty=super",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -720,11 +1986,58 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/abc"
+            "url": "{{baseUrl}}/categories/2/recipes/abc",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
-          "name": "POST receptas (naujoje kategorijoje)",
+          "name": "POST receptas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST receptas: autorius imamas iš žetono (201)",
           "event": [
             {
               "listen": "test",
@@ -736,7 +2049,8 @@
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
                   "pm.test('Yra Location antraštė', () => pm.expect(pm.response.headers.get('Location')).to.include('/api/'));",
-                  "pm.test('Autorius jonas, commentCount 0, averageRating null', () => { pm.expect(body.author.username).to.eql('jonas'); pm.expect(body.commentCount).to.eql(0); pm.expect(body.averageRating).to.eql(null); });",
+                  "pm.test('Autorius jonas (2), nors kūne nurodytas authorId 3', () => { pm.expect(body.authorId).to.eql(2); pm.expect(body.author.username).to.eql('jonas'); });",
+                  "pm.test('commentCount 0, averageRating null', () => { pm.expect(body.commentCount).to.eql(0); pm.expect(body.averageRating).to.eql(null); });",
                   "if (pm.response.code === 201) { pm.collectionVariables.set('newRecipeId', body.id); }"
                 ]
               }
@@ -751,9 +2065,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2,\n  \"authorId\": 2\n}",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2,\n  \"authorId\": 3\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -763,7 +2087,7 @@
           }
         },
         {
-          "name": "POST receptas: nevalidūs laukai",
+          "name": "POST receptas: nevalidūs laukai (422)",
           "event": [
             {
               "listen": "test",
@@ -793,51 +2117,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"A\",\n  \"prepTimeMinutes\": -5,\n  \"difficulty\": \"super\",\n  \"authorId\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
                 }
-              }
-            }
-          }
-        },
-        {
-          "name": "POST receptas: autorius neegzistuoja",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Statuso kodas 422', () => pm.response.to.have.status(422));",
-                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
-                  "let body = {};",
-                  "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('Klaidos formatas: error.status = 422', () => {",
-                  "  pm.expect(body).to.have.property('error');",
-                  "  pm.expect(body.error.status).to.eql(422);",
-                  "  pm.expect(body.error).to.have.property('message');",
-                  "});",
-                  "pm.test('Klaida lauke authorId', () => { pm.expect(body.error.details[0].field).to.eql('authorId'); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes",
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2,\n  \"authorId\": 999\n}",
+              "raw": "{\n  \"title\": \"A\",\n  \"prepTimeMinutes\": -5,\n  \"difficulty\": \"super\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -876,6 +2168,16 @@
               }
             ],
             "url": "{{baseUrl}}/categories/9999/recipes",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{}",
@@ -888,18 +2190,22 @@
           }
         },
         {
-          "name": "PUT receptas",
+          "name": "PUT receptas be žetono (401)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
                   "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('Porcijos 4, laikas 15', () => { pm.expect(body.servings).to.eql(4); pm.expect(body.prepTimeMinutes).to.eql(15); });"
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
                 ]
               }
             }
@@ -913,9 +2219,216 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Sumustiniai su lašiša ir agurkais\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\\nkrapų\",\n  \"prepTimeMinutes\": 15,\n  \"difficulty\": \"easy\",\n  \"servings\": 4\n}",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT receptas: ne autorius (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT receptas: ne autorius ir tuščias kūnas (403, nuosavybė tikrinama prieš validaciją)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT receptas: administratorius svetimo recepto nekeičia (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT receptas 9999 (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 404', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(404);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/9999",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\",\n  \"prepTimeMinutes\": 10,\n  \"difficulty\": \"easy\",\n  \"servings\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -962,6 +2475,114 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT receptas: autorius, nevalidūs laukai (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 422', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(422);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT receptas: autorius (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Porcijos 4, laikas 15', () => { pm.expect(body.servings).to.eql(4); pm.expect(body.prepTimeMinutes).to.eql(15); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sumustiniai su lašiša ir agurkais\",\n  \"description\": \"Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais.\",\n  \"ingredients\": \"4 riekės duonos\\n100 g lašišos\\n1 agurkas\\nkrapų\",\n  \"prepTimeMinutes\": 15,\n  \"difficulty\": \"easy\",\n  \"servings\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -985,7 +2606,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/recipes?limit=4"
+            "url": "{{baseUrl}}/recipes?limit=4",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1008,7 +2632,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/recipes?authorId=2"
+            "url": "{{baseUrl}}/recipes?authorId=2",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1031,7 +2658,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/recipes?categoryId=9999"
+            "url": "{{baseUrl}}/recipes?categoryId=9999",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1058,13 +2688,16 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/recipes?categoryId=abc"
+            "url": "{{baseUrl}}/recipes?categoryId=abc",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
     },
     {
-      "name": "3 Atsiliepimai",
+      "name": "5 Atsiliepimai",
       "item": [
         {
           "name": "GET atsiliepimai (hierarchinis kelias)",
@@ -1086,7 +2719,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1109,7 +2745,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments?minRating=5"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments?minRating=5",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1132,7 +2771,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments/5"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments/5",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1159,7 +2801,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments/1"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments/1",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1186,7 +2831,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/1/recipes/3/comments"
+            "url": "{{baseUrl}}/categories/1/recipes/3/comments",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1213,7 +2861,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments/abc"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments/abc",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1240,11 +2891,58 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/2/recipes/3/comments?minRating=6"
+            "url": "{{baseUrl}}/categories/2/recipes/3/comments?minRating=6",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
-          "name": "POST atsiliepimas",
+          "name": "POST atsiliepimas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Labai skanu, pavyko iš pirmo karto.\",\n  \"rating\": 4,\n  \"authorId\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST atsiliepimas: autorius imamas iš žetono (201)",
           "event": [
             {
               "listen": "test",
@@ -1256,7 +2954,7 @@
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
                   "pm.test('Yra Location antraštė', () => pm.expect(pm.response.headers.get('Location')).to.include('/api/'));",
-                  "pm.test('Autorius mantas, įvertinimas 4', () => { pm.expect(body.author.username).to.eql('mantas'); pm.expect(body.rating).to.eql(4); });",
+                  "pm.test('Autorius mantas (4), nors kūne nurodytas authorId 3', () => { pm.expect(body.authorId).to.eql(4); pm.expect(body.author.username).to.eql('mantas'); pm.expect(body.rating).to.eql(4); });",
                   "if (pm.response.code === 201) { pm.collectionVariables.set('newCommentId', body.id); }"
                 ]
               }
@@ -1271,9 +2969,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Labai skanu, pavyko iš pirmo karto.\",\n  \"rating\": 4,\n  \"authorId\": 4\n}",
+              "raw": "{\n  \"text\": \"Labai skanu, pavyko iš pirmo karto.\",\n  \"rating\": 4,\n  \"authorId\": 3\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1302,7 +3010,10 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1335,9 +3046,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Bandau antra karta.\",\n  \"rating\": 5,\n  \"authorId\": 4\n}",
+              "raw": "{\n  \"text\": \"Bandau antra karta.\",\n  \"rating\": 5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1376,50 +3097,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"text\": \"Vertinu savo recepta.\",\n  \"rating\": 5,\n  \"authorId\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
                 }
-              }
-            }
-          }
-        },
-        {
-          "name": "POST atsiliepimas: autorius neegzistuoja (422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Statuso kodas 422', () => pm.response.to.have.status(422));",
-                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
-                  "let body = {};",
-                  "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('Klaidos formatas: error.status = 422', () => {",
-                  "  pm.expect(body).to.have.property('error');",
-                  "  pm.expect(body.error.status).to.eql(422);",
-                  "  pm.expect(body.error).to.have.property('message');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Neegzistuojantis autorius.\",\n  \"rating\": 5,\n  \"authorId\": 999\n}",
+              "raw": "{\n  \"text\": \"Vertinu savo recepta.\",\n  \"rating\": 5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1459,9 +3149,19 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"ok\",\n  \"rating\": 6,\n  \"authorId\": 3\n}",
+              "raw": "{\n  \"text\": \"ok\",\n  \"rating\": 6\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1471,18 +3171,22 @@
           }
         },
         {
-          "name": "PUT atsiliepimas",
+          "name": "PUT atsiliepimas be žetono (401)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
                   "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('Įvertinimas 5', () => { pm.expect(body.rating).to.eql(5); });"
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
                 ]
               }
             }
@@ -1496,9 +3200,114 @@
               }
             ],
             "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Pakartojau, dar skaniau su grietine.\",\n  \"rating\": 5\n}",
+              "raw": "{\n  \"text\": \"Keiciu.\",\n  \"rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT atsiliepimas: ne autorius (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Svetimas atsiliepimas.\",\n  \"rating\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT atsiliepimas: administratorius svetimo nekeičia (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Svetimas atsiliepimas.\",\n  \"rating\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1545,6 +3354,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -1586,11 +3405,182 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
         {
-          "name": "DELETE atsiliepimas",
+          "name": "PUT atsiliepimas: autorius (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Įvertinimas 5', () => { pm.expect(body.rating).to.eql(5); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Pakartojau, dar skaniau su grietine.\",\n  \"rating\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE atsiliepimas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "DELETE atsiliepimas: ne autorius (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST atsiliepimas: kitas naudotojas (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('newCommentId2', body.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Taip pat labai skanu.\",\n  \"rating\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE atsiliepimas: administratorius šalina svetimą (204)",
           "event": [
             {
               "listen": "test",
@@ -1605,7 +3595,46 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId2}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE atsiliepimas: autorius (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1632,16 +3661,93 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}/comments/{{newCommentId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "4 Receptų ir kategorijos trynimas",
+      "name": "6 Receptų ir kategorijos trynimas",
       "item": [
         {
-          "name": "DELETE receptas",
+          "name": "DELETE receptas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "DELETE receptas: ne autorius (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE receptas: administratorius (204)",
           "event": [
             {
               "listen": "test",
@@ -1656,7 +3762,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1683,7 +3799,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}/recipes/{{newRecipeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1702,7 +3828,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1729,16 +3865,56 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/categories/{{newCategoryId}}"
+            "url": "{{baseUrl}}/categories/{{newCategoryId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "5 Naudotojai",
+      "name": "7 Naudotojai",
       "item": [
         {
-          "name": "GET skydelis: naudotojas 2 (jonas)",
+          "name": "GET skydelis be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/2/dashboard",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET skydelis: jonas mato savo skydelį",
           "event": [
             {
               "listen": "test",
@@ -1759,7 +3935,87 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users/2/dashboard"
+            "url": "{{baseUrl}}/users/2/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET skydelis: ruta bando matyti jono skydelį (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/2/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rutaToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET skydelis: administratorius mato jono skydelį (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Skydelis priklauso jonui', () => { pm.expect(body.user.username).to.eql('jonas'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/2/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1782,11 +4038,21 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users/1/dashboard"
+            "url": "{{baseUrl}}/users/1/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
-          "name": "GET skydelis: naudotojas 9999 (404)",
+          "name": "GET skydelis: naudotojas 9999, administratorius (404)",
           "event": [
             {
               "listen": "test",
@@ -1809,7 +4075,54 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users/9999/dashboard"
+            "url": "{{baseUrl}}/users/9999/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET skydelis: naudotojas 9999, paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/9999/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1836,11 +4149,88 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users/abc/dashboard"
+            "url": "{{baseUrl}}/users/abc/dashboard",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
-          "name": "GET naudotojų sąrašas",
+          "name": "GET naudotojų sąrašas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET naudotojų sąrašas: paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET naudotojų sąrašas: administratorius (200)",
           "event": [
             {
               "listen": "test",
@@ -1851,7 +4241,7 @@
                   "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('4 naudotojai, nėra passwordHash', () => { pm.expect(body.data).to.have.length(4); body.data.forEach(u => pm.expect(u).to.not.have.property('passwordHash')); });"
+                  "pm.test('Mažiausiai 4 naudotojai, nėra passwordHash', () => { pm.expect(body.pagination.totalItems).to.be.at.least(4); body.data.forEach(u => pm.expect(u).to.not.have.property('passwordHash')); });"
                 ]
               }
             }
@@ -1859,7 +4249,17 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users"
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1874,7 +4274,7 @@
                   "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "let body = {};",
                   "try { body = pm.response.json(); } catch (e) {}",
-                  "pm.test('2 įrašai, yra prev, nėra next', () => { pm.expect(body.data).to.have.length(2); pm.expect(body._links).to.have.property('prev'); pm.expect(body._links).to.not.have.property('next'); });"
+                  "pm.test('2 įrašai, yra prev', () => { pm.expect(body.data).to.have.length(2); pm.expect(body._links).to.have.property('prev'); });"
                 ]
               }
             }
@@ -1882,7 +4282,84 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/users?limit=2&page=2"
+            "url": "{{baseUrl}}/users?limit=2&page=2",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE naudotojas be žetono (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/users/4",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "DELETE naudotojas: paprastas naudotojas (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 403', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(403);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/users/4",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jonasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1909,7 +4386,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/users/9999"
+            "url": "{{baseUrl}}/users/9999",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1936,13 +4423,23 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/users/abc"
+            "url": "{{baseUrl}}/users/abc",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "6 Naudotojo trynimas (po jo paleisti npm run seed)",
+      "name": "8 Naudotojo trynimas (po jo paleisti npm run seed)",
       "item": [
         {
           "name": "DELETE naudotojas 4 (mantas)",
@@ -1960,7 +4457,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/users/4"
+            "url": "{{baseUrl}}/users/4",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -1987,7 +4494,17 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/users/4"
+            "url": "{{baseUrl}}/users/4",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         },
         {
@@ -2010,7 +4527,47 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/recipes?authorId=4"
+            "url": "{{baseUrl}}/recipes?authorId=4",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET me: ištrinto naudotojo žetonas nebegalioja (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statuso kodas 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Atsakymas yra JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "let body = {};",
+                  "try { body = pm.response.json(); } catch (e) {}",
+                  "pm.test('Klaidos formatas: error.status = 401', () => {",
+                  "  pm.expect(body).to.have.property('error');",
+                  "  pm.expect(body.error.status).to.eql(401);",
+                  "  pm.expect(body.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mantasToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]

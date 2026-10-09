@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Receptų portalo API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     REST API receptų portalui. Objektų hierarchija: kategorija → receptas → atsiliepimas.
 
@@ -10,13 +10,31 @@ info:
 
     Sąrašai puslapiuojami (`page`, `limit`) ir turi hypermedia nuorodas `_links`.
 
-    Pastaba: 1 laboratoriniame darbe autentifikacijos nėra, todėl recepto ir atsiliepimo
-    autorius nurodomas užklausos kūne (`authorId`). 2 laboratoriniame darbe autorius bus
-    imamas iš žetono, o dalis metodų bus prieinami tik tam tikroms rolėms.
+    ## Autentifikacija ir autorizacija
+
+    Naudojami JWT žetonai.
+
+    1. `POST /auth/login` grąžina **access žetoną** (galioja 15 min.). Jį reikia siųsti kiekvienoje apsaugotoje
+       užklausoje antraštėje `Authorization: Bearer <žetonas>`. Žetono viduje yra naudotojo ID (`sub`),
+       rolė (`role`) ir sesijos ID (`sid`). Žetonas pasirašomas HS256 algoritmu.
+    2. Kartu nustatomas `refreshToken` cookie (httpOnly, galioja 7 d., siunčiamas tik adresais `/api/auth/*`).
+       Juo `POST /auth/refresh` iškeičia į naują access žetoną. Kiekvienas refresh žetonas galioja tik vieną kartą (rotacija).
+    3. `POST /auth/logout` atšaukia sesiją, todėl po atsijungimo nustoja veikti ir dar nepasibaigęs access žetonas.
+
+    Rolės: svečias (be žetono, gali tik skaityti), `user` ir `admin`. Metodai su spynos ikona reikalauja prisijungimo.
+
+    - **401**: nėra žetono, jis negalioja arba sesija atšaukta.
+    - **403**: naudotojas prisijungęs, bet neturi teisės (pvz. svetimo recepto keitimas arba administratoriaus metodas).
+
+    Swagger UI: per `POST /auth/login` gaukite `accessToken`, spauskite **Authorize** ir įrašykite jį (be žodžio Bearer).
+    Testavimui paruošti naudotojai: `admin@example.com` / `Admin123!` (administratorius) ir `jonas@example.com`,
+    `ruta@example.com`, `mantas@example.com` / `Slaptazodis123!` (paprasti naudotojai).
 servers:
   - url: http://localhost:3000/api
     description: Vietinė aplinka
 tags:
+  - name: Autentifikacija
+    description: Registracija, prisijungimas, žetonų atnaujinimas ir atsijungimas
   - name: Kategorijos
     description: Receptų kategorijos
   - name: Receptai
@@ -27,6 +45,12 @@ tags:
     description: Naudotojų sąrašas, skydelis ir šalinimas
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access žetonas iš POST /auth/login (galioja 15 min.)
   parameters:
     CategoryId:
       name: categoryId
@@ -92,26 +116,26 @@ components:
       type: object
       description: Puslapiavimo nuorodos. `prev` ir `next` pateikiamos tik tada, kai yra kur eiti.
       properties:
-        self: { $ref: '#/components/schemas/Link' }
-        first: { $ref: '#/components/schemas/Link' }
-        last: { $ref: '#/components/schemas/Link' }
-        prev: { $ref: '#/components/schemas/Link' }
-        next: { $ref: '#/components/schemas/Link' }
+        self: {$ref: '#/components/schemas/Link'}
+        first: {$ref: '#/components/schemas/Link'}
+        last: {$ref: '#/components/schemas/Link'}
+        prev: {$ref: '#/components/schemas/Link'}
+        next: {$ref: '#/components/schemas/Link'}
     Pagination:
       type: object
       properties:
-        page: { type: integer, example: 1 }
-        limit: { type: integer, example: 10 }
-        totalItems: { type: integer, example: 6 }
-        totalPages: { type: integer, example: 1 }
+        page: {type: integer, example: 1}
+        limit: {type: integer, example: 10}
+        totalItems: {type: integer, example: 6}
+        totalPages: {type: integer, example: 1}
     Error:
       type: object
       properties:
         error:
           type: object
           properties:
-            status: { type: integer, example: 404 }
-            message: { type: string }
+            status: {type: integer, example: 404}
+            message: {type: string}
             details:
               type: array
               nullable: true
@@ -119,35 +143,35 @@ components:
               items:
                 type: object
                 properties:
-                  field: { type: string, example: name }
-                  message: { type: string }
+                  field: {type: string, example: name}
+                  message: {type: string}
     UserRef:
       type: object
       description: Trumpa informacija apie autorių
       properties:
-        id: { type: integer, example: 2 }
-        username: { type: string, example: jonas }
+        id: {type: integer, example: 2}
+        username: {type: string, example: jonas}
 
     Category:
       type: object
       properties:
-        id: { type: integer, example: 1 }
-        name: { type: string, example: Sriubos }
-        description: { type: string }
-        imageUrl: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        id: {type: integer, example: 1}
+        name: {type: string, example: Sriubos}
+        description: {type: string}
+        imageUrl: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
         _links:
           type: object
           properties:
-            self: { $ref: '#/components/schemas/Link' }
-            collection: { $ref: '#/components/schemas/Link' }
-            recipes: { $ref: '#/components/schemas/Link' }
+            self: {$ref: '#/components/schemas/Link'}
+            collection: {$ref: '#/components/schemas/Link'}
+            recipes: {$ref: '#/components/schemas/Link'}
     CategoryInput:
       type: object
       required: [name, description]
       properties:
-        name: { type: string, minLength: 2, maxLength: 100, example: Gerimai }
+        name: {type: string, minLength: 2, maxLength: 100, example: Gerimai}
         description:
           type: string
           minLength: 1
@@ -164,36 +188,36 @@ components:
       properties:
         data:
           type: array
-          items: { $ref: '#/components/schemas/Category' }
-        pagination: { $ref: '#/components/schemas/Pagination' }
-        _links: { $ref: '#/components/schemas/ListLinks' }
+          items: {$ref: '#/components/schemas/Category'}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        _links: {$ref: '#/components/schemas/ListLinks'}
 
     Recipe:
       type: object
       properties:
-        id: { type: integer, example: 3 }
-        categoryId: { type: integer, example: 2 }
-        authorId: { type: integer, example: 2 }
-        title: { type: string, example: Cepelinai su mėsa }
-        description: { type: string }
+        id: {type: integer, example: 3}
+        categoryId: {type: integer, example: 2}
+        authorId: {type: integer, example: 2}
+        title: {type: string, example: Cepelinai su mėsa}
+        description: {type: string}
         ingredients:
           type: string
           description: Ingredientai, kiekvienas naujoje eilutėje
           example: "2 kg žalių bulvių\n500 g virtų bulvių\n500 g kiaulienos faršo"
-        prepTimeMinutes: { type: integer, example: 120 }
-        difficulty: { type: string, enum: [easy, medium, hard], example: hard }
-        servings: { type: integer, example: 6 }
-        imageUrl: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-        author: { $ref: '#/components/schemas/UserRef' }
+        prepTimeMinutes: {type: integer, example: 120}
+        difficulty: {type: string, enum: [easy, medium, hard], example: hard}
+        servings: {type: integer, example: 6}
+        imageUrl: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        author: {$ref: '#/components/schemas/UserRef'}
         category:
           type: object
           description: Pateikiama tik bendrame sąraše GET /recipes
           properties:
-            id: { type: integer, example: 2 }
-            name: { type: string, example: Karšti patiekalai }
-        commentCount: { type: integer, example: 2 }
+            id: {type: integer, example: 2}
+            name: {type: string, example: Karšti patiekalai}
+        commentCount: {type: integer, example: 2}
         averageRating:
           type: number
           nullable: true
@@ -202,146 +226,186 @@ components:
         _links:
           type: object
           properties:
-            self: { $ref: '#/components/schemas/Link' }
-            collection: { $ref: '#/components/schemas/Link' }
-            category: { $ref: '#/components/schemas/Link' }
-            comments: { $ref: '#/components/schemas/Link' }
+            self: {$ref: '#/components/schemas/Link'}
+            collection: {$ref: '#/components/schemas/Link'}
+            category: {$ref: '#/components/schemas/Link'}
+            comments: {$ref: '#/components/schemas/Link'}
     RecipeInput:
       type: object
       required: [title, description, ingredients, prepTimeMinutes, difficulty, servings]
       properties:
-        title: { type: string, minLength: 2, maxLength: 150, example: Sumustiniai su lašiša }
-        description: { type: string, minLength: 10, maxLength: 5000 }
-        ingredients: { type: string, minLength: 3, maxLength: 3000 }
-        prepTimeMinutes: { type: integer, minimum: 1, maximum: 10000, example: 10 }
-        difficulty: { type: string, enum: [easy, medium, hard], example: easy }
-        servings: { type: integer, minimum: 1, maximum: 100, example: 2 }
+        title: {type: string, minLength: 2, maxLength: 150, example: Sumustiniai su lašiša}
+        description: {type: string, minLength: 10, maxLength: 5000}
+        ingredients: {type: string, minLength: 3, maxLength: 3000}
+        prepTimeMinutes: {type: integer, minimum: 1, maximum: 10000, example: 10}
+        difficulty: {type: string, enum: [easy, medium, hard], example: easy}
+        servings: {type: integer, minimum: 1, maximum: 100, example: 2}
         imageUrl:
           type: string
           format: uri
           maxLength: 500
           nullable: true
-    RecipeCreateInput:
-      description: Kaip RecipeInput, bet su autoriumi (tik 1 laboratoriniame darbe)
-      allOf:
-        - $ref: '#/components/schemas/RecipeInput'
-        - type: object
-          required: [authorId]
-          properties:
-            authorId: { type: integer, minimum: 1, example: 2 }
     RecipeList:
       type: object
       properties:
         data:
           type: array
-          items: { $ref: '#/components/schemas/Recipe' }
-        pagination: { $ref: '#/components/schemas/Pagination' }
-        _links: { $ref: '#/components/schemas/ListLinks' }
+          items: {$ref: '#/components/schemas/Recipe'}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        _links: {$ref: '#/components/schemas/ListLinks'}
 
     Comment:
       type: object
       properties:
-        id: { type: integer, example: 5 }
-        recipeId: { type: integer, example: 3 }
-        authorId: { type: integer, example: 3 }
-        text: { type: string }
-        rating: { type: integer, minimum: 1, maximum: 5, example: 5 }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-        author: { $ref: '#/components/schemas/UserRef' }
+        id: {type: integer, example: 5}
+        recipeId: {type: integer, example: 3}
+        authorId: {type: integer, example: 3}
+        text: {type: string}
+        rating: {type: integer, minimum: 1, maximum: 5, example: 5}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        author: {$ref: '#/components/schemas/UserRef'}
         _links:
           type: object
           properties:
-            self: { $ref: '#/components/schemas/Link' }
-            collection: { $ref: '#/components/schemas/Link' }
-            recipe: { $ref: '#/components/schemas/Link' }
+            self: {$ref: '#/components/schemas/Link'}
+            collection: {$ref: '#/components/schemas/Link'}
+            recipe: {$ref: '#/components/schemas/Link'}
     CommentInput:
       type: object
       required: [text, rating]
       properties:
-        text: { type: string, minLength: 3, maxLength: 2000 }
-        rating: { type: integer, minimum: 1, maximum: 5, example: 4 }
-    CommentCreateInput:
-      description: Kaip CommentInput, bet su autoriumi (tik 1 laboratoriniame darbe)
-      allOf:
-        - $ref: '#/components/schemas/CommentInput'
-        - type: object
-          required: [authorId]
-          properties:
-            authorId: { type: integer, minimum: 1, example: 4 }
+        text: {type: string, minLength: 3, maxLength: 2000}
+        rating: {type: integer, minimum: 1, maximum: 5, example: 4}
     CommentList:
       type: object
       properties:
         data:
           type: array
-          items: { $ref: '#/components/schemas/Comment' }
-        pagination: { $ref: '#/components/schemas/Pagination' }
-        _links: { $ref: '#/components/schemas/ListLinks' }
+          items: {$ref: '#/components/schemas/Comment'}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        _links: {$ref: '#/components/schemas/ListLinks'}
 
     User:
       type: object
       description: Naudotojas. Slaptažodžio hash niekada negrąžinamas.
       properties:
-        id: { type: integer, example: 2 }
-        username: { type: string, example: jonas }
-        email: { type: string, example: jonas@example.com }
-        role: { type: string, enum: [user, admin], example: user }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        id: {type: integer, example: 2}
+        username: {type: string, example: jonas}
+        email: {type: string, example: jonas@example.com}
+        role: {type: string, enum: [user, admin], example: user}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
         _links:
           type: object
           properties:
-            collection: { $ref: '#/components/schemas/Link' }
-            dashboard: { $ref: '#/components/schemas/Link' }
-            recipes: { $ref: '#/components/schemas/Link' }
+            collection: {$ref: '#/components/schemas/Link'}
+            dashboard: {$ref: '#/components/schemas/Link'}
+            recipes: {$ref: '#/components/schemas/Link'}
     UserList:
       type: object
       properties:
         data:
           type: array
-          items: { $ref: '#/components/schemas/User' }
-        pagination: { $ref: '#/components/schemas/Pagination' }
-        _links: { $ref: '#/components/schemas/ListLinks' }
+          items: {$ref: '#/components/schemas/User'}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        _links: {$ref: '#/components/schemas/ListLinks'}
     Dashboard:
       type: object
       description: Resursas, sudarytas iš trijų esybių (naudotojas, jo receptai, jo receptų gauti atsiliepimai)
       properties:
-        user: { $ref: '#/components/schemas/User' }
+        user: {$ref: '#/components/schemas/User'}
         stats:
           type: object
           properties:
-            recipeCount: { type: integer, example: 3 }
-            receivedCommentCount: { type: integer, example: 6 }
-            averageRating: { type: number, nullable: true, example: 4.5 }
+            recipeCount: {type: integer, example: 3}
+            receivedCommentCount: {type: integer, example: 6}
+            averageRating: {type: number, nullable: true, example: 4.5}
         recipes:
           type: array
-          items: { $ref: '#/components/schemas/Recipe' }
+          items: {$ref: '#/components/schemas/Recipe'}
         receivedComments:
           type: array
           description: Tik 10 naujausių atsiliepimų, bendras kiekis yra stats.receivedCommentCount
-          items: { $ref: '#/components/schemas/Comment' }
+          items: {$ref: '#/components/schemas/Comment'}
         _links:
           type: object
           properties:
-            self: { $ref: '#/components/schemas/Link' }
-            recipes: { $ref: '#/components/schemas/Link' }
+            self: {$ref: '#/components/schemas/Link'}
+            recipes: {$ref: '#/components/schemas/Link'}
+    RegisterInput:
+      type: object
+      required: [username, email, password]
+      properties:
+        username: {type: string, minLength: 3, maxLength: 50, example: petras}
+        email: {type: string, format: email, maxLength: 255, example: petras@example.com}
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          example: Slaptazodis123!
+          description: Saugomas tik bcrypt hash. Rolė visada user, jos nurodyti negalima (papildomi laukai ignoruojami).
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, example: jonas@example.com}
+        password: {type: string, example: Slaptazodis123!}
+    AuthUser:
+      type: object
+      properties:
+        id: {type: integer, example: 5}
+        username: {type: string, example: petras}
+        email: {type: string, example: petras@example.com}
+        role: {type: string, enum: [user, admin], example: user}
+        createdAt: {type: string, format: date-time}
+    RegisteredUser:
+      allOf:
+        - $ref: '#/components/schemas/AuthUser'
+        - type: object
+          properties:
+            _links:
+              type: object
+              properties:
+                self: {$ref: '#/components/schemas/Link'}
+                login: {$ref: '#/components/schemas/Link'}
+    CurrentUser:
+      allOf:
+        - $ref: '#/components/schemas/AuthUser'
+        - type: object
+          properties:
+            _links:
+              type: object
+              properties:
+                self: {$ref: '#/components/schemas/Link'}
+                dashboard: {$ref: '#/components/schemas/Link'}
+                logout: {$ref: '#/components/schemas/Link'}
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT (HS256). Turinyje yra sub (naudotojo ID), role, sid (sesijos ID), iat ir exp.
+        tokenType: {type: string, example: Bearer}
+        expiresIn: {type: integer, description: Access žetono galiojimas sekundėmis, example: 900}
+        user: {$ref: '#/components/schemas/AuthUser'}
 
   responses:
     BadRequest:
       description: Netinkamas ID, netinkamas užklausos parametras arba sugadintas JSON
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 400
               message: "Netinkamas categoryId: turi būti teigiamas sveikasis skaičius"
-              details: null
+              details:
     Unprocessable:
       description: JSON teisingas, bet laukų reikšmės netinkamos. Klaidos išvardytos details lauke.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 422
@@ -355,44 +419,343 @@ components:
       description: Kategorija nerasta
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 404
               message: Kategorija nerasta
-              details: null
+              details:
     RecipeNotFound:
       description: Kategorija nerasta arba receptas nepriklauso šiai kategorijai
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 404
               message: Receptas nerastas šioje kategorijoje
-              details: null
+              details:
     CommentNotFound:
       description: Kategorija ar receptas nerasti arba atsiliepimas nepriklauso šiam receptui
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 404
               message: Atsiliepimas nerastas šiame recepte
-              details: null
+              details:
     UserNotFound:
       description: Naudotojas nerastas
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Error' }
+          schema: {$ref: '#/components/schemas/Error'}
           example:
             error:
               status: 404
               message: Naudotojas nerastas
-              details: null
+              details:
 
+    Unauthorized:
+      description: Nėra access žetono, jis sugadintas, pasibaigęs arba sesija atšaukta (atsijungus)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          examples:
+            noToken:
+              summary: Nėra Authorization antraštės
+              value:
+                error:
+                  status: 401
+                  message: Reikalingas prisijungimas
+                  details:
+            invalidToken:
+              summary: Žetonas sugadintas arba pasibaigęs
+              value:
+                error:
+                  status: 401
+                  message: Žetonas negalioja arba pasibaigė
+                  details:
+            sessionEnded:
+              summary: Sesija atšaukta (atsijungta arba žetonas pakeistas per refresh)
+              value:
+                error:
+                  status: 401
+                  message: Sesija nebegalioja
+                  details:
+    ForbiddenAdmin:
+      description: Prisijungęs naudotojas nėra administratorius
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example:
+            error:
+              status: 403
+              message: Neturite teisių atlikti šio veiksmo
+              details:
+    ForbiddenOwner:
+      description: Šį turinį sukūrė kitas naudotojas. Keisti gali tik autorius (administratorius taip pat negali)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example:
+            error:
+              status: 403
+              message: Šį veiksmą gali atlikti tik turinio autorius
+              details:
+    ForbiddenOwnerOrAdmin:
+      description: Šį turinį sukūrė kitas naudotojas. Šalinti gali tik autorius arba administratorius
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example:
+            error:
+              status: 403
+              message: Šį veiksmą gali atlikti tik turinio autorius arba administratorius
+              details:
+    ForbiddenSelfOrAdmin:
+      description: Skydelį mato tik pats naudotojas arba administratorius
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example:
+            error:
+              status: 403
+              message: Šį veiksmą gali atlikti tik pats naudotojas arba administratorius
+              details:
 paths:
+  /auth/register:
+    post:
+      tags: [Autentifikacija]
+      summary: Registruotis
+      description: |
+        Sukuria naują naudotoją su role user. Slaptažodis saugomas kaip bcrypt hash. Nurodyti rolės negalima:
+        papildomi laukai (pvz. role) ignoruojami, administratorių galima sukurti tik tiesiogiai duomenų bazėje.
+        Registracija neprijungia, po jos reikia kviesti POST /auth/login.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterInput'}
+            example:
+              username: petras
+              email: petras@example.com
+              password: Slaptazodis123!
+      responses:
+        '201':
+          description: Naudotojas sukurtas (slaptažodžio hash negrąžinamas)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RegisteredUser'}
+              example:
+                id: 5
+                username: petras
+                email: petras@example.com
+                role: user
+                createdAt: "2026-10-09T14:49:28.840Z"
+                _links:
+                  self: {href: /api/auth/register}
+                  login: {href: /api/auth/login}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Toks naudotojo vardas arba el. paštas jau užregistruotas
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 409
+                  message: Tokia reikšmė jau naudojama
+                  details:
+                    - field: email
+                      message: email must be unique
+        '422':
+          description: Netinkami laukai
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: username
+                      message: Naudotojo vardas turi būti bent 3 simbolių
+                    - field: email
+                      message: Neteisingas el. pašto formatas
+                    - field: password
+                      message: Slaptažodis turi būti bent 8 simbolių
+  /auth/login:
+    post:
+      tags: [Autentifikacija]
+      summary: Prisijungti
+      description: |
+        Patikrina el. paštą ir slaptažodį. Sėkmės atveju sukuria sesiją, atsakyme grąžina access žetoną (15 min.),
+        o refresh žetoną nustato httpOnly cookie refreshToken (7 d., Path=/api/auth). Blogas el. paštas ir blogas
+        slaptažodis grąžina tą pačią žinutę, kad nebūtų galima išsiaiškinti, kurie el. paštai užregistruoti.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginInput'}
+            example:
+              email: jonas@example.com
+              password: Slaptazodis123!
+      responses:
+        '200':
+          description: Prisijungta
+          headers:
+            Set-Cookie:
+              description: refreshToken=...; Path=/api/auth; HttpOnly; Max-Age=604800 (gamyboje dar Secure ir SameSite=None)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenResponse'}
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwicm9sZSI6InVzZXIiLCJzaWQiOjEsImlhdCI6MTc5MTU1NzM2OSwiZXhwIjoxNzkxNTU4MjY5fQ.N5voPm3WeL8MaZ57zxIkqbGYX9_E7eqfjITRM73gtfw
+                tokenType: Bearer
+                expiresIn: 900
+                user:
+                  id: 2
+                  username: jonas
+                  email: jonas@example.com
+                  role: user
+                  createdAt: "2026-10-09T14:49:19.595Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Neteisingas el. paštas arba slaptažodis
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 401
+                  message: Neteisingas el. paštas arba slaptažodis
+                  details:
+        '422':
+          description: Trūksta el. pašto arba slaptažodžio
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: email
+                      message: El. paštas privalomas
+                    - field: password
+                      message: Slaptažodis privalomas
+  /auth/refresh:
+    post:
+      tags: [Autentifikacija]
+      summary: Atnaujinti access žetoną
+      description: |
+        Iškeičia refresh žetoną (cookie refreshToken, naršyklė jį siunčia pati) į naują access žetoną.
+        Rotacija: senoji sesija atšaukiama, sukuriama nauja ir nustatomas naujas refresh cookie. Senas access žetonas
+        po to nebegalioja (401), todėl klientas turi pakeisti jį nauju. Kūno nereikia.
+      security: []
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: false
+          description: Refresh žetonas. Siunčiamas automatiškai, jei naršyklė jį turi.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Naujas access žetonas ir naujas refresh cookie
+          headers:
+            Set-Cookie:
+              description: Naujas refreshToken cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenResponse'}
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwicm9sZSI6InVzZXIiLCJzaWQiOjIsImlhdCI6MTc5MTU1NzQ2OSwiZXhwIjoxNzkxNTU4MzY5fQ.kQ1x0m3b9Zr8vJmP2sT7yUeWnL4cHdA6fGiOaVbXyEs
+                tokenType: Bearer
+                expiresIn: 900
+                user:
+                  id: 2
+                  username: jonas
+                  email: jonas@example.com
+                  role: user
+                  createdAt: "2026-10-09T14:49:19.595Z"
+        '401':
+          description: Refresh žetono nėra, jis jau panaudotas, atšauktas arba pasibaigęs
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              examples:
+                noCookie:
+                  summary: Nėra cookie
+                  value:
+                    error:
+                      status: 401
+                      message: Trūksta refresh žetono
+                      details:
+                invalidToken:
+                  summary: Žetonas atšauktas, panaudotas arba pasibaigęs
+                  value:
+                    error:
+                      status: 401
+                      message: Refresh žetonas negalioja arba pasibaigė
+                      details:
+  /auth/logout:
+    post:
+      tags: [Autentifikacija]
+      summary: Atsijungti
+      description: |
+        Atšaukia sesiją duomenų bazėje (po to nustoja veikti ir dar nepasibaigęs access žetonas) ir išvalo refresh cookie.
+        Visada grąžina 204, net jei cookie nėra (naudotojas ir taip atsijungęs). Kūno nereikia.
+      security: []
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: false
+          description: Refresh žetonas. Siunčiamas automatiškai, jei naršyklė jį turi.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Atsijungta (atsakymo kūno nėra)
+          headers:
+            Set-Cookie:
+              description: Išvalytas refreshToken cookie
+              schema:
+                type: string
+  /auth/me:
+    get:
+      tags: [Autentifikacija]
+      summary: Prisijungusio naudotojo duomenys
+      description: Grąžina naudotoją, kuriam priklauso žetonas. ID imamas iš žetono, ne iš adreso.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Prisijungęs naudotojas
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CurrentUser'}
+              example:
+                id: 2
+                username: jonas
+                email: jonas@example.com
+                role: user
+                createdAt: "2026-10-09T14:49:19.595Z"
+                _links:
+                  self: {href: /api/auth/me}
+                  dashboard: {href: /api/users/2/dashboard}
+                  logout: {href: /api/auth/logout}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /categories:
     get:
       tags: [Kategorijos]
@@ -411,46 +774,48 @@ paths:
           description: Kategorijų sąrašas (užklausa ?limit=2)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/CategoryList' }
+              schema: {$ref: '#/components/schemas/CategoryList'}
               example:
                 data:
                   - id: 3
                     name: Desertai
                     description: "Saldūs patiekalai ir kepiniai arbatai, šventėms ir kasdienai."
-                    imageUrl: null
+                    imageUrl:
                     createdAt: "2026-10-08T12:54:18.193Z"
                     updatedAt: "2026-10-08T12:54:18.193Z"
                     _links:
-                      self: { href: /api/categories/3 }
-                      collection: { href: /api/categories }
-                      recipes: { href: /api/categories/3/recipes }
+                      self: {href: /api/categories/3}
+                      collection: {href: /api/categories}
+                      recipes: {href: /api/categories/3/recipes}
                   - id: 2
                     name: Karšti patiekalai
                     description: "Tradiciniai lietuviški pietų patiekalai iš bulvių, mėsos ir daržovių."
-                    imageUrl: null
+                    imageUrl:
                     createdAt: "2026-10-08T12:54:18.138Z"
                     updatedAt: "2026-10-08T12:54:18.138Z"
                     _links:
-                      self: { href: /api/categories/2 }
-                      collection: { href: /api/categories }
-                      recipes: { href: /api/categories/2/recipes }
-                pagination: { page: 1, limit: 2, totalItems: 6, totalPages: 3 }
+                      self: {href: /api/categories/2}
+                      collection: {href: /api/categories}
+                      recipes: {href: /api/categories/2/recipes}
+                pagination: {page: 1, limit: 2, totalItems: 6, totalPages: 3}
                 _links:
-                  self: { href: /api/categories?limit=2&page=1 }
-                  first: { href: /api/categories?limit=2&page=1 }
-                  last: { href: /api/categories?limit=2&page=3 }
-                  next: { href: /api/categories?limit=2&page=2 }
+                  self: {href: "/api/categories?limit=2&page=1"}
+                  first: {href: "/api/categories?limit=2&page=1"}
+                  last: {href: "/api/categories?limit=2&page=3"}
+                  next: {href: "/api/categories?limit=2&page=2"}
         '400':
           $ref: '#/components/responses/BadRequest'
     post:
       tags: [Kategorijos]
       summary: Sukurti kategoriją
-      description: Sukuria naują kategoriją. Pavadinimas turi būti unikalus.
+      description: Sukuria naują kategoriją. Pavadinimas turi būti unikalus. Tik administratorius.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CategoryInput' }
+            schema: {$ref: '#/components/schemas/CategoryInput'}
             example:
               name: Gerimai
               description: "Arbatos, kompotai ir kiti gerimai."
@@ -465,25 +830,29 @@ paths:
                 example: /api/categories/7
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Category' }
+              schema: {$ref: '#/components/schemas/Category'}
               example:
                 id: 7
                 name: Gerimai
                 description: "Arbatos, kompotai ir kiti gerimai."
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T13:10:21.885Z"
                 updatedAt: "2026-10-08T13:10:21.885Z"
                 _links:
-                  self: { href: /api/categories/7 }
-                  collection: { href: /api/categories }
-                  recipes: { href: /api/categories/7/recipes }
+                  self: {href: /api/categories/7}
+                  collection: {href: /api/categories}
+                  recipes: {href: /api/categories/7/recipes}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
         '409':
           description: Kategorija tokiu pavadinimu jau yra
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 409
@@ -505,31 +874,34 @@ paths:
           description: Kategorija
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Category' }
+              schema: {$ref: '#/components/schemas/Category'}
               example:
                 id: 1
                 name: Sriubos
                 description: "Šaltos ir karštos sriubos: nuo vasaros šaltibarščių iki sočių žiemos sriubų."
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T12:54:18.081Z"
                 updatedAt: "2026-10-08T12:54:18.081Z"
                 _links:
-                  self: { href: /api/categories/1 }
-                  collection: { href: /api/categories }
-                  recipes: { href: /api/categories/1/recipes }
+                  self: {href: /api/categories/1}
+                  collection: {href: /api/categories}
+                  recipes: {href: /api/categories/1/recipes}
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/CategoryNotFound'
+      description: Grąžina vieną kategoriją pagal ID. Metodas viešas.
     put:
       tags: [Kategorijos]
       summary: Pakeisti kategoriją
-      description: Pakeičia visą kategoriją. Neišsiųstas imageUrl tampa null.
+      description: Pakeičia visą kategoriją. Neišsiųstas imageUrl tampa null. Tik administratorius.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CategoryInput' }
+            schema: {$ref: '#/components/schemas/CategoryInput'}
             example:
               name: Gerimai
               description: "Arbatos, sultys ir kompotai."
@@ -538,27 +910,31 @@ paths:
           description: Kategorija atnaujinta
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Category' }
+              schema: {$ref: '#/components/schemas/Category'}
               example:
                 id: 7
                 name: Gerimai
                 description: "Arbatos, sultys ir kompotai."
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T13:10:21.885Z"
                 updatedAt: "2026-10-08T13:10:28.679Z"
                 _links:
-                  self: { href: /api/categories/7 }
-                  collection: { href: /api/categories }
-                  recipes: { href: /api/categories/7/recipes }
+                  self: {href: /api/categories/7}
+                  collection: {href: /api/categories}
+                  recipes: {href: /api/categories/7/recipes}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/CategoryNotFound'
         '409':
           description: Kita kategorija tokiu pavadinimu jau yra
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 409
@@ -571,24 +947,30 @@ paths:
     delete:
       tags: [Kategorijos]
       summary: Ištrinti kategoriją
-      description: Ištrinti galima tik kategoriją, kurioje nėra receptų.
+      description: Ištrinti galima tik kategoriją, kurioje nėra receptų. Tik administratorius.
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: Kategorija ištrinta (atsakymo kūno nėra)
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/CategoryNotFound'
         '409':
           description: Kategorijoje yra receptų
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 409
                   message: Kategorijos, kurioje yra receptų, ištrinti negalima
-                  details: null
+                  details:
 
   /categories/{categoryId}/recipes:
     parameters:
@@ -624,7 +1006,7 @@ paths:
           description: Receptų sąrašas (užklausa ?search=cepel)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/RecipeList' }
+              schema: {$ref: '#/components/schemas/RecipeList'}
               example:
                 data:
                   - id: 3
@@ -636,22 +1018,22 @@ paths:
                     prepTimeMinutes: 120
                     difficulty: hard
                     servings: 6
-                    imageUrl: null
+                    imageUrl:
                     createdAt: "2026-10-08T12:54:18.541Z"
                     updatedAt: "2026-10-08T12:54:18.541Z"
-                    author: { id: 2, username: jonas }
+                    author: {id: 2, username: jonas}
                     commentCount: 2
                     averageRating: 4.5
                     _links:
-                      self: { href: /api/categories/2/recipes/3 }
-                      collection: { href: /api/categories/2/recipes }
-                      category: { href: /api/categories/2 }
-                      comments: { href: /api/categories/2/recipes/3/comments }
-                pagination: { page: 1, limit: 10, totalItems: 1, totalPages: 1 }
+                      self: {href: /api/categories/2/recipes/3}
+                      collection: {href: /api/categories/2/recipes}
+                      category: {href: /api/categories/2}
+                      comments: {href: /api/categories/2/recipes/3/comments}
+                pagination: {page: 1, limit: 10, totalItems: 1, totalPages: 1}
                 _links:
-                  self: { href: "/api/categories/2/recipes?search=cepel&page=1" }
-                  first: { href: "/api/categories/2/recipes?search=cepel&page=1" }
-                  last: { href: "/api/categories/2/recipes?search=cepel&page=1" }
+                  self: {href: "/api/categories/2/recipes?search=cepel&page=1"}
+                  first: {href: "/api/categories/2/recipes?search=cepel&page=1"}
+                  last: {href: "/api/categories/2/recipes?search=cepel&page=1"}
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -660,14 +1042,17 @@ paths:
       tags: [Receptai]
       summary: Sukurti receptą kategorijoje
       description: |
-        Sukuria receptą šioje kategorijoje. 1 laboratoriniame darbe autorius nurodomas
-        kūne (authorId), nuo 2 laboratorinio jis bus imamas iš žetono.
+        Sukuria receptą šioje kategorijoje. Gali bet kuris prisijungęs naudotojas. Autorius
+        imamas iš žetono, kūne atsiųstas authorId ignoruojamas.
         Kategorija tikrinama prieš validaciją, todėl neegzistuojančiai kategorijai visada grąžinamas 404.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RecipeCreateInput' }
+            schema:
+              $ref: '#/components/schemas/RecipeInput'
             example:
               title: Sumustiniai su lašiša
               description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
@@ -675,7 +1060,6 @@ paths:
               prepTimeMinutes: 10
               difficulty: easy
               servings: 2
-              authorId: 2
       responses:
         '201':
           description: Receptas sukurtas. Antraštė Location nurodo naujo recepto adresą.
@@ -687,7 +1071,7 @@ paths:
                 example: /api/categories/5/recipes/11
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Recipe' }
+              schema: {$ref: '#/components/schemas/Recipe'}
               example:
                 id: 11
                 categoryId: 5
@@ -698,50 +1082,39 @@ paths:
                 prepTimeMinutes: 10
                 difficulty: easy
                 servings: 2
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T13:19:21.543Z"
                 updatedAt: "2026-10-08T13:19:21.543Z"
-                author: { id: 2, username: jonas }
+                author: {id: 2, username: jonas}
                 commentCount: 0
-                averageRating: null
+                averageRating:
                 _links:
-                  self: { href: /api/categories/5/recipes/11 }
-                  collection: { href: /api/categories/5/recipes }
-                  category: { href: /api/categories/5 }
-                  comments: { href: /api/categories/5/recipes/11/comments }
+                  self: {href: /api/categories/5/recipes/11}
+                  collection: {href: /api/categories/5/recipes}
+                  category: {href: /api/categories/5}
+                  comments: {href: /api/categories/5/recipes/11/comments}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/CategoryNotFound'
         '422':
-          description: Netinkami laukai arba autorius (authorId) neegzistuoja
+          description: Netinkami laukai
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-              examples:
-                invalidFields:
-                  summary: Netinkami laukai
-                  value:
-                    error:
-                      status: 422
-                      message: Neteisingi duomenys
-                      details:
-                        - field: title
-                          message: Pavadinimas turi būti bent 2 simbolių
-                        - field: prepTimeMinutes
-                          message: Gaminimo laikas turi būti bent 1 minutė
-                        - field: difficulty
-                          message: Sudėtingumas turi būti easy, medium arba hard
-                authorNotFound:
-                  summary: Autorius neegzistuoja
-                  value:
-                    error:
-                      status: 422
-                      message: Neteisingi duomenys
-                      details:
-                        - field: authorId
-                          message: Naudotojas nerastas
-
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: title
+                      message: Pavadinimas turi būti bent 2 simbolių
+                    - field: prepTimeMinutes
+                      message: Gaminimo laikas turi būti bent 1 minutė
+                    - field: difficulty
+                      message: Sudėtingumas turi būti easy, medium arba hard
   /categories/{categoryId}/recipes/{recipeId}:
     parameters:
       - $ref: '#/components/parameters/CategoryId'
@@ -757,7 +1130,7 @@ paths:
           description: Receptas
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Recipe' }
+              schema: {$ref: '#/components/schemas/Recipe'}
               example:
                 id: 3
                 categoryId: 2
@@ -768,17 +1141,17 @@ paths:
                 prepTimeMinutes: 120
                 difficulty: hard
                 servings: 6
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T12:54:18.541Z"
                 updatedAt: "2026-10-08T12:54:18.541Z"
-                author: { id: 2, username: jonas }
+                author: {id: 2, username: jonas}
                 commentCount: 2
                 averageRating: 4.5
                 _links:
-                  self: { href: /api/categories/2/recipes/3 }
-                  collection: { href: /api/categories/2/recipes }
-                  category: { href: /api/categories/2 }
-                  comments: { href: /api/categories/2/recipes/3/comments }
+                  self: {href: /api/categories/2/recipes/3}
+                  collection: {href: /api/categories/2/recipes}
+                  category: {href: /api/categories/2}
+                  comments: {href: /api/categories/2/recipes/3/comments}
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -787,13 +1160,17 @@ paths:
       tags: [Receptai]
       summary: Pakeisti receptą
       description: |
-        Pakeičia visą receptą. Autoriaus ir kategorijos pakeisti negalima, atsiųsti
-        authorId ar categoryId laukai ignoruojami. Neišsiųstas imageUrl tampa null.
+        Pakeičia visą receptą. Gali tik recepto autorius (kitiems, įskaitant administratorių, 403).
+        Autoriaus ir kategorijos pakeisti negalima, atsiųsti authorId ar categoryId laukai ignoruojami.
+        Neišsiųstas imageUrl tampa null. Tikrinimo tvarka: žetonas (401), ar receptas yra (404),
+        ar tai jūsų receptas (403), laukų validacija (422).
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RecipeInput' }
+            schema: {$ref: '#/components/schemas/RecipeInput'}
             example:
               title: Sumustiniai su lašiša ir agurkais
               description: "Duona patepama sviestu, dedama lašiša ir agurkai. Papuošiama krapais."
@@ -806,7 +1183,7 @@ paths:
           description: Receptas atnaujintas
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Recipe' }
+              schema: {$ref: '#/components/schemas/Recipe'}
               example:
                 id: 11
                 categoryId: 5
@@ -817,26 +1194,30 @@ paths:
                 prepTimeMinutes: 15
                 difficulty: easy
                 servings: 4
-                imageUrl: null
+                imageUrl:
                 createdAt: "2026-10-08T13:19:21.543Z"
                 updatedAt: "2026-10-08T13:19:22.689Z"
-                author: { id: 2, username: jonas }
+                author: {id: 2, username: jonas}
                 commentCount: 0
-                averageRating: null
+                averageRating:
                 _links:
-                  self: { href: /api/categories/5/recipes/11 }
-                  collection: { href: /api/categories/5/recipes }
-                  category: { href: /api/categories/5 }
-                  comments: { href: /api/categories/5/recipes/11/comments }
+                  self: {href: /api/categories/5/recipes/11}
+                  collection: {href: /api/categories/5/recipes}
+                  category: {href: /api/categories/5}
+                  comments: {href: /api/categories/5/recipes/11/comments}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenOwner'
         '404':
           $ref: '#/components/responses/RecipeNotFound'
         '422':
           description: Netinkami laukai
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 422
@@ -847,12 +1228,18 @@ paths:
     delete:
       tags: [Receptai]
       summary: Ištrinti receptą
-      description: Kartu ištrinami ir recepto atsiliepimai (ON DELETE CASCADE).
+      description: Šalina recepto autorius arba administratorius. Kartu ištrinami ir recepto atsiliepimai (ON DELETE CASCADE).
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: Receptas ištrintas (atsakymo kūno nėra)
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenOwnerOrAdmin'
         '404':
           $ref: '#/components/responses/RecipeNotFound'
 
@@ -901,7 +1288,7 @@ paths:
           description: Receptų sąrašas (užklausa ?authorId=2&limit=1)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/RecipeList' }
+              schema: {$ref: '#/components/schemas/RecipeList'}
               example:
                 data:
                   - id: 8
@@ -913,34 +1300,34 @@ paths:
                     prepTimeMinutes: 40
                     difficulty: easy
                     servings: 4
-                    imageUrl: null
+                    imageUrl:
                     createdAt: "2026-10-08T13:28:33.824Z"
                     updatedAt: "2026-10-08T13:28:33.824Z"
-                    author: { id: 2, username: jonas }
-                    category: { id: 4, name: Vegetariški patiekalai }
+                    author: {id: 2, username: jonas}
+                    category: {id: 4, name: Vegetariški patiekalai}
                     commentCount: 2
                     averageRating: 4.5
                     _links:
-                      self: { href: /api/categories/4/recipes/8 }
-                      collection: { href: /api/categories/4/recipes }
-                      category: { href: /api/categories/4 }
-                      comments: { href: /api/categories/4/recipes/8/comments }
-                pagination: { page: 1, limit: 1, totalItems: 3, totalPages: 3 }
+                      self: {href: /api/categories/4/recipes/8}
+                      collection: {href: /api/categories/4/recipes}
+                      category: {href: /api/categories/4}
+                      comments: {href: /api/categories/4/recipes/8/comments}
+                pagination: {page: 1, limit: 1, totalItems: 3, totalPages: 3}
                 _links:
-                  self: { href: "/api/recipes?authorId=2&limit=1&page=1" }
-                  first: { href: "/api/recipes?authorId=2&limit=1&page=1" }
-                  last: { href: "/api/recipes?authorId=2&limit=1&page=3" }
-                  next: { href: "/api/recipes?authorId=2&limit=1&page=2" }
+                  self: {href: "/api/recipes?authorId=2&limit=1&page=1"}
+                  first: {href: "/api/recipes?authorId=2&limit=1&page=1"}
+                  last: {href: "/api/recipes?authorId=2&limit=1&page=3"}
+                  next: {href: "/api/recipes?authorId=2&limit=1&page=2"}
         '400':
           description: Netinkamas puslapiavimo ar filtro parametras
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 400
                   message: Parametras categoryId turi būti teigiamas sveikasis skaičius
-                  details: null
+                  details:
 
   /categories/{categoryId}/recipes/{recipeId}/comments:
     parameters:
@@ -967,7 +1354,7 @@ paths:
           description: Atsiliepimų sąrašas (užklausa ?minRating=5)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/CommentList' }
+              schema: {$ref: '#/components/schemas/CommentList'}
               example:
                 data:
                   - id: 5
@@ -977,45 +1364,47 @@ paths:
                     rating: 5
                     createdAt: "2026-10-08T12:54:19.224Z"
                     updatedAt: "2026-10-08T12:54:19.224Z"
-                    author: { id: 3, username: ruta }
+                    author: {id: 3, username: ruta}
                     _links:
-                      self: { href: /api/categories/2/recipes/3/comments/5 }
-                      collection: { href: /api/categories/2/recipes/3/comments }
-                      recipe: { href: /api/categories/2/recipes/3 }
-                pagination: { page: 1, limit: 10, totalItems: 1, totalPages: 1 }
+                      self: {href: /api/categories/2/recipes/3/comments/5}
+                      collection: {href: /api/categories/2/recipes/3/comments}
+                      recipe: {href: /api/categories/2/recipes/3}
+                pagination: {page: 1, limit: 10, totalItems: 1, totalPages: 1}
                 _links:
-                  self: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
-                  first: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
-                  last: { href: "/api/categories/2/recipes/3/comments?minRating=5&page=1" }
+                  self: {href: "/api/categories/2/recipes/3/comments?minRating=5&page=1"}
+                  first: {href: "/api/categories/2/recipes/3/comments?minRating=5&page=1"}
+                  last: {href: "/api/categories/2/recipes/3/comments?minRating=5&page=1"}
         '400':
           description: Netinkamas ID arba netinkamas puslapiavimo ar minRating parametras
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 400
                   message: Parametras minRating turi būti nuo 1 iki 5
-                  details: null
+                  details:
         '404':
           $ref: '#/components/responses/RecipeNotFound'
     post:
       tags: [Atsiliepimai]
       summary: Sukurti atsiliepimą
       description: |
-        Prideda atsiliepimą (tekstą ir įvertinimą 1-5) receptui. 1 laboratoriniame darbe autorius
-        nurodomas kūne (authorId), nuo 2 laboratorinio jis bus imamas iš žetono.
+        Prideda atsiliepimą (tekstą ir įvertinimą 1-5) receptui. Gali bet kuris prisijungęs naudotojas.
+        Autorius imamas iš žetono, kūne atsiųstas authorId ignoruojamas.
         Taisyklės: recepto autorius negali vertinti savo recepto (403), vienas naudotojas
         vienam receptui gali palikti tik vieną atsiliepimą (409).
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CommentCreateInput' }
+            schema:
+              $ref: '#/components/schemas/CommentInput'
             example:
               text: "Labai skanus kugelis, pavyko iš pirmo karto."
               rating: 4
-              authorId: 4
       responses:
         '201':
           description: Atsiliepimas sukurtas. Antraštė Location nurodo naujo atsiliepimo adresą.
@@ -1027,7 +1416,7 @@ paths:
                 example: /api/categories/2/recipes/4/comments/18
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Comment' }
+              schema: {$ref: '#/components/schemas/Comment'}
               example:
                 id: 18
                 recipeId: 4
@@ -1036,62 +1425,51 @@ paths:
                 rating: 4
                 createdAt: "2026-10-08T13:26:27.210Z"
                 updatedAt: "2026-10-08T13:26:27.210Z"
-                author: { id: 4, username: mantas }
+                author: {id: 4, username: mantas}
                 _links:
-                  self: { href: /api/categories/2/recipes/4/comments/18 }
-                  collection: { href: /api/categories/2/recipes/4/comments }
-                  recipe: { href: /api/categories/2/recipes/4 }
+                  self: {href: /api/categories/2/recipes/4/comments/18}
+                  collection: {href: /api/categories/2/recipes/4/comments}
+                  recipe: {href: /api/categories/2/recipes/4}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           description: Recepto autorius bando vertinti savo receptą
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 403
                   message: Recepto autorius negali vertinti savo recepto
-                  details: null
+                  details:
         '404':
           $ref: '#/components/responses/RecipeNotFound'
         '409':
           description: Šis naudotojas šiam receptui atsiliepimą jau yra palikęs
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 409
                   message: Šiam receptui atsiliepimą jau esate palikę
-                  details: null
+                  details:
         '422':
-          description: Netinkami laukai arba autorius (authorId) neegzistuoja
+          description: Netinkami laukai
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-              examples:
-                invalidFields:
-                  summary: Netinkami laukai
-                  value:
-                    error:
-                      status: 422
-                      message: Neteisingi duomenys
-                      details:
-                        - field: text
-                          message: Tekstas turi būti bent 3 simbolių
-                        - field: rating
-                          message: Įvertinimas turi būti nuo 1 iki 5
-                authorNotFound:
-                  summary: Autorius neegzistuoja
-                  value:
-                    error:
-                      status: 422
-                      message: Neteisingi duomenys
-                      details:
-                        - field: authorId
-                          message: Naudotojas nerastas
-
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error:
+                  status: 422
+                  message: Neteisingi duomenys
+                  details:
+                    - field: text
+                      message: Tekstas turi būti bent 3 simbolių
+                    - field: rating
+                      message: Įvertinimas turi būti nuo 1 iki 5
   /categories/{categoryId}/recipes/{recipeId}/comments/{commentId}:
     parameters:
       - $ref: '#/components/parameters/CategoryId'
@@ -1108,7 +1486,7 @@ paths:
           description: Atsiliepimas
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Comment' }
+              schema: {$ref: '#/components/schemas/Comment'}
               example:
                 id: 5
                 recipeId: 3
@@ -1117,11 +1495,11 @@ paths:
                 rating: 5
                 createdAt: "2026-10-08T12:54:19.224Z"
                 updatedAt: "2026-10-08T12:54:19.224Z"
-                author: { id: 3, username: ruta }
+                author: {id: 3, username: ruta}
                 _links:
-                  self: { href: /api/categories/2/recipes/3/comments/5 }
-                  collection: { href: /api/categories/2/recipes/3/comments }
-                  recipe: { href: /api/categories/2/recipes/3 }
+                  self: {href: /api/categories/2/recipes/3/comments/5}
+                  collection: {href: /api/categories/2/recipes/3/comments}
+                  recipe: {href: /api/categories/2/recipes/3}
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -1129,12 +1507,14 @@ paths:
     put:
       tags: [Atsiliepimai]
       summary: Pakeisti atsiliepimą
-      description: Pakeičia tik tekstą ir įvertinimą. Recepto ir autoriaus pakeisti negalima.
+      description: Pakeičia tik tekstą ir įvertinimą. Gali tik atsiliepimo autorius (kitiems, įskaitant administratorių, 403). Recepto ir autoriaus pakeisti negalima.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CommentInput' }
+            schema: {$ref: '#/components/schemas/CommentInput'}
             example:
               text: "Pakartojau, dar skaniau su grietine."
               rating: 5
@@ -1143,7 +1523,7 @@ paths:
           description: Atsiliepimas atnaujintas
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Comment' }
+              schema: {$ref: '#/components/schemas/Comment'}
               example:
                 id: 18
                 recipeId: 4
@@ -1152,20 +1532,24 @@ paths:
                 rating: 5
                 createdAt: "2026-10-08T13:26:27.210Z"
                 updatedAt: "2026-10-08T13:26:30.492Z"
-                author: { id: 4, username: mantas }
+                author: {id: 4, username: mantas}
                 _links:
-                  self: { href: /api/categories/2/recipes/4/comments/18 }
-                  collection: { href: /api/categories/2/recipes/4/comments }
-                  recipe: { href: /api/categories/2/recipes/4 }
+                  self: {href: /api/categories/2/recipes/4/comments/18}
+                  collection: {href: /api/categories/2/recipes/4/comments}
+                  recipe: {href: /api/categories/2/recipes/4}
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenOwner'
         '404':
           $ref: '#/components/responses/CommentNotFound'
         '422':
           description: Netinkami laukai
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 422
@@ -1176,21 +1560,29 @@ paths:
     delete:
       tags: [Atsiliepimai]
       summary: Ištrinti atsiliepimą
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: Atsiliepimas ištrintas (atsakymo kūno nėra)
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenOwnerOrAdmin'
         '404':
           $ref: '#/components/responses/CommentNotFound'
 
+      description: Šalina atsiliepimo autorius arba administratorius.
   /users:
     get:
       tags: [Naudotojai]
       summary: Naudotojų sąrašas
-      description: |
-        Grąžina puslapiuojamą naudotojų sąrašą pagal ID. Slaptažodžio hash niekada negrąžinamas.
-        2 laboratoriniame darbe šis metodas bus prieinamas tik administratoriui.
+      description: |-
+        Grąžina puslapiuojamą naudotojų sąrašą pagal ID. Slaptažodžio hash niekada negrąžinamas. Tik administratorius.
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Limit'
@@ -1199,7 +1591,7 @@ paths:
           description: Naudotojų sąrašas (užklausa ?limit=2&page=2)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/UserList' }
+              schema: {$ref: '#/components/schemas/UserList'}
               example:
                 data:
                   - id: 3
@@ -1209,9 +1601,9 @@ paths:
                     createdAt: "2026-10-08T13:28:32.832Z"
                     updatedAt: "2026-10-08T13:28:32.832Z"
                     _links:
-                      collection: { href: /api/users }
-                      dashboard: { href: /api/users/3/dashboard }
-                      recipes: { href: "/api/recipes?authorId=3" }
+                      collection: {href: /api/users}
+                      dashboard: {href: /api/users/3/dashboard}
+                      recipes: {href: "/api/recipes?authorId=3"}
                   - id: 4
                     username: mantas
                     email: mantas@example.com
@@ -1219,26 +1611,30 @@ paths:
                     createdAt: "2026-10-08T13:28:33.061Z"
                     updatedAt: "2026-10-08T13:28:33.061Z"
                     _links:
-                      collection: { href: /api/users }
-                      dashboard: { href: /api/users/4/dashboard }
-                      recipes: { href: "/api/recipes?authorId=4" }
-                pagination: { page: 2, limit: 2, totalItems: 4, totalPages: 2 }
+                      collection: {href: /api/users}
+                      dashboard: {href: /api/users/4/dashboard}
+                      recipes: {href: "/api/recipes?authorId=4"}
+                pagination: {page: 2, limit: 2, totalItems: 4, totalPages: 2}
                 _links:
-                  self: { href: "/api/users?limit=2&page=2" }
-                  first: { href: "/api/users?limit=2&page=1" }
-                  last: { href: "/api/users?limit=2&page=2" }
-                  prev: { href: "/api/users?limit=2&page=1" }
+                  self: {href: "/api/users?limit=2&page=2"}
+                  first: {href: "/api/users?limit=2&page=1"}
+                  last: {href: "/api/users?limit=2&page=2"}
+                  prev: {href: "/api/users?limit=2&page=1"}
         '400':
           description: Netinkamas puslapiavimo parametras
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 400
                   message: Parametras page turi būti teigiamas sveikasis skaičius
-                  details: null
+                  details:
 
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
   /users/{userId}/dashboard:
     parameters:
       - $ref: '#/components/parameters/UserId'
@@ -1249,7 +1645,11 @@ paths:
         Vienas resursas, sudarytas iš trijų esybių: naudotojo, jo receptų ir šių receptų gautų
         atsiliepimų. Skaičiai (stats) skaičiuojami iš visų duomenų, o receivedComments
         grąžina tik 10 naujausių atsiliepimų. Naudotojas be receptų gauna tuščius masyvus
-        ir averageRating: null. 2 laboratoriniame darbe skydelį matys tik pats naudotojas arba administratorius.
+        ir averageRating: null. Skydelį mato tik pats naudotojas arba administratorius
+        (skydelyje yra el. paštas). Administratoriui neegzistuojantis naudotojas duoda 404,
+        paprastam naudotojui kito naudotojo ID visada duoda 403.
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: |
@@ -1257,7 +1657,7 @@ paths:
             nors stats rodo visus.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Dashboard' }
+              schema: {$ref: '#/components/schemas/Dashboard'}
               example:
                 user:
                   id: 2
@@ -1267,9 +1667,9 @@ paths:
                   createdAt: "2026-10-08T13:28:32.610Z"
                   updatedAt: "2026-10-08T13:28:32.610Z"
                   _links:
-                    collection: { href: /api/users }
-                    dashboard: { href: /api/users/2/dashboard }
-                    recipes: { href: "/api/recipes?authorId=2" }
+                    collection: {href: /api/users}
+                    dashboard: {href: /api/users/2/dashboard}
+                    recipes: {href: "/api/recipes?authorId=2"}
                 stats:
                   recipeCount: 3
                   receivedCommentCount: 6
@@ -1284,16 +1684,16 @@ paths:
                     prepTimeMinutes: 40
                     difficulty: easy
                     servings: 4
-                    imageUrl: null
+                    imageUrl:
                     createdAt: "2026-10-08T13:28:33.824Z"
                     updatedAt: "2026-10-08T13:28:33.824Z"
                     commentCount: 2
                     averageRating: 4.5
                     _links:
-                      self: { href: /api/categories/4/recipes/8 }
-                      collection: { href: /api/categories/4/recipes }
-                      category: { href: /api/categories/4 }
-                      comments: { href: /api/categories/4/recipes/8/comments }
+                      self: {href: /api/categories/4/recipes/8}
+                      collection: {href: /api/categories/4/recipes}
+                      category: {href: /api/categories/4}
+                      comments: {href: /api/categories/4/recipes/8/comments}
                 receivedComments:
                   - id: 14
                     recipeId: 8
@@ -1302,24 +1702,28 @@ paths:
                     rating: 5
                     createdAt: "2026-10-08T13:28:34.701Z"
                     updatedAt: "2026-10-08T13:28:34.701Z"
-                    author: { id: 3, username: ruta }
+                    author: {id: 3, username: ruta}
                     _links:
-                      self: { href: /api/categories/4/recipes/8/comments/14 }
-                      collection: { href: /api/categories/4/recipes/8/comments }
-                      recipe: { href: /api/categories/4/recipes/8 }
+                      self: {href: /api/categories/4/recipes/8/comments/14}
+                      collection: {href: /api/categories/4/recipes/8/comments}
+                      recipe: {href: /api/categories/4/recipes/8}
                 _links:
-                  self: { href: /api/users/2/dashboard }
-                  recipes: { href: "/api/recipes?authorId=2" }
+                  self: {href: /api/users/2/dashboard}
+                  recipes: {href: "/api/recipes?authorId=2"}
         '400':
           description: Netinkamas naudotojo ID
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 400
                   message: "Netinkamas userId: turi būti teigiamas sveikasis skaičius"
-                  details: null
+                  details:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenSelfOrAdmin'
         '404':
           $ref: '#/components/responses/UserNotFound'
 
@@ -1331,7 +1735,9 @@ paths:
       summary: Ištrinti naudotojo paskyrą
       description: |
         Kartu su naudotoju duomenų bazė (ON DELETE CASCADE) ištrina jo receptus, jo parašytus
-        atsiliepimus ir atsiliepimus po jo receptais. 2 laboratoriniame darbe šis metodas bus tik administratoriui.
+        atsiliepimus, atsiliepimus po jo receptais ir sesijas. Tik administratorius.
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: Naudotojas ištrintas (atsakymo kūno nėra)
@@ -1339,11 +1745,15 @@ paths:
           description: Netinkamas naudotojo ID
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+              schema: {$ref: '#/components/schemas/Error'}
               example:
                 error:
                   status: 400
                   message: "Netinkamas userId: turi būti teigiamas sveikasis skaičius"
-                  details: null
+                  details:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/UserNotFound'
