@@ -3,6 +3,7 @@ const User = require('./User');
 const Category = require('./Category');
 const Recipe = require('./Recipe');
 const Comment = require('./Comment');
+const RefreshToken = require('./RefreshToken');
 
 // Hierarchija: Category 1 -> N Recipe 1 -> N Comment
 
@@ -22,4 +23,8 @@ Recipe.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 User.hasMany(Comment, { foreignKey: 'authorId', as: 'comments', onDelete: 'CASCADE' });
 Comment.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 
-module.exports = { sequelize, User, Category, Recipe, Comment };
+// Ištrynus naudotoją, ištrinamos ir jo sesijos (refresh žetonai)
+User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens', onDelete: 'CASCADE' });
+RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+module.exports = { sequelize, User, Category, Recipe, Comment, RefreshToken };

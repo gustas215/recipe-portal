@@ -1,7 +1,11 @@
 const path = require('path');
 const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+const authRouter = require('./routes/auth');
 const categoriesRouter = require('./routes/categories');
 const usersRouter = require('./routes/users');
 const recipesController = require('./controllers/recipes');
@@ -13,7 +17,17 @@ const swaggerDocument = YAML.load(path.join(__dirname, '../../docs/api-spec.yaml
 
 const app = express();
 
+// Render yra už tarpinio serverio (proxy), todėl reikia pasitikėti jo antraštėmis
+app.set('trust proxy', 1);
+
+// Saugumo antraštės (pvz. pašalina X-Powered-By)
+app.use(helmet());
+
+// Leidžiame užklausas tik iš savo frontend, kartu su cookie
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+
 app.use(express.json());
+app.use(cookieParser());
 
 // Swagger UI: API dokumentacija ir išbandymas naršyklėje
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -31,6 +45,7 @@ app.get('/api', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/users', usersRouter);
 

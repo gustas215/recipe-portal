@@ -20,7 +20,8 @@ const commentCreateSchema = commentSchema.extend({
   authorId: z
     .number({ error: 'Autoriaus ID privalomas' })
     .int('Autoriaus ID turi būti sveikas skaičius')
-    .min(1, 'Autoriaus ID turi būti teigiamas'),
+    .min(1, 'Autoriaus ID turi būti teigiamas')
+    .max(2147483647, 'Autoriaus ID per didelis'),
 });
 
 module.exports = { commentSchema, commentCreateSchema };
