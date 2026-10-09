@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Recipe, User, Category } = require('../models');
+const { Recipe, Category } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { getPagination, buildPagination, parsePositiveInt } = require('../utils/pagination');
 const { buildListLinks } = require('../utils/links');
@@ -115,20 +115,12 @@ async function getOne(req, res) {
 
 // POST /api/categories/:categoryId/recipes
 async function create(req, res) {
-  const { authorId, ...fields } = req.body;
-
-  const author = await User.findByPk(authorId);
-  if (!author) {
-    throw new ApiError(422, 'Neteisingi duomenys', [
-      { field: 'authorId', message: 'Naudotojas nerastas' },
-    ]);
-  }
-
+  // Autorius imamas iš žetono. Kūne atsiųstas authorId ignoruojamas (validate jį pašalina).
   const recipe = await Recipe.create({
-    ...fields,
-    imageUrl: fields.imageUrl ?? null,
+    ...req.body,
+    imageUrl: req.body.imageUrl ?? null,
     categoryId: req.category.id,
-    authorId,
+    authorId: req.user.id,
   });
 
   // Perskaitome iš naujo, kad atsakyme būtų ir autorius

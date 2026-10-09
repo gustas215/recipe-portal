@@ -37,14 +37,6 @@ const recipeSchema = z.object({
     .optional(),
 });
 
-// L1 metu autorių nurodome užklausos kūne. Nuo L2 POST naudos tik recipeSchema,
-// o authorId bus imamas iš žetono.
-const recipeCreateSchema = recipeSchema.extend({
-  authorId: z
-    .number({ error: 'Autoriaus ID privalomas' })
-    .int('Autoriaus ID turi būti sveikas skaičius')
-    .min(1, 'Autoriaus ID turi būti teigiamas')
-    .max(2147483647, 'Autoriaus ID per didelis'),
-});
 
-module.exports = { recipeSchema, recipeCreateSchema };
+
+module.exports = { recipeSchema };
