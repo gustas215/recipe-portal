@@ -1,6 +1,7 @@
 const { z } = require('zod');
 
-// Laukai, kuriuos naudotojas gali keisti (naudojama POST ir PUT)
+// Laukai, kuriuos naudotojas gali keisti (naudojama POST ir PUT).
+// Autorius imamas iš žetono, todėl kūne jo nėra.
 const commentSchema = z.object({
   text: z
     .string({ error: 'Tekstas privalomas' })
@@ -14,14 +15,4 @@ const commentSchema = z.object({
     .max(5, 'Įvertinimas turi būti nuo 1 iki 5'),
 });
 
-// L1 metu autorių nurodome užklausos kūne. Nuo L2 POST naudos tik commentSchema,
-// o authorId bus imamas iš žetono.
-const commentCreateSchema = commentSchema.extend({
-  authorId: z
-    .number({ error: 'Autoriaus ID privalomas' })
-    .int('Autoriaus ID turi būti sveikas skaičius')
-    .min(1, 'Autoriaus ID turi būti teigiamas')
-    .max(2147483647, 'Autoriaus ID per didelis'),
-});
-
-module.exports = { commentSchema, commentCreateSchema };
+module.exports = { commentSchema };

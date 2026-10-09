@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Comment, User } = require('../models');
+const { Comment } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { getPagination, buildPagination, parsePositiveInt } = require('../utils/pagination');
 const { buildListLinks } = require('../utils/links');
@@ -64,14 +64,9 @@ async function getOne(req, res) {
 
 // POST /api/categories/:categoryId/recipes/:recipeId/comments
 async function create(req, res) {
-  const { authorId, text, rating } = req.body;
-
-  const author = await User.findByPk(authorId);
-  if (!author) {
-    throw new ApiError(422, 'Neteisingi duomenys', [
-      { field: 'authorId', message: 'Naudotojas nerastas' },
-    ]);
-  }
+  const { text, rating } = req.body;
+  // Autorius imamas iš žetono (req.user). Kūne atsiųstas authorId ignoruojamas.
+  const authorId = req.user.id;
 
   if (authorId === req.recipe.authorId) {
     throw new ApiError(403, 'Recepto autorius negali vertinti savo recepto');
