@@ -94,8 +94,9 @@
   background: rgba(255, 255, 255, 0.14);
 }
 
-/* Telefonas: meniu paslėptas už hamburgerio */
-@media (max-width: 768px) {
+/* Telefonas ir planšetė: meniu paslėptas už hamburgerio. Su ilgesniais punktais (prisijungus)
+   horizontalus meniu netelpa siauresniame nei 1024 px lange. */
+@media (max-width: 1024px) {
   .nav-toggle {
     display: inline-flex;
   }

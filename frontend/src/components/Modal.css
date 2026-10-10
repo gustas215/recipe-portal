@@ -22,6 +22,10 @@
   animation: modalIn 0.25s ease both;
 }
 
+.modal:focus {
+  outline: none;
+}
+
 .modal-header {
   display: flex;
   align-items: center;

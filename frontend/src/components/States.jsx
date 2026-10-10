@@ -15,7 +15,7 @@ export function EmptyState({ title, text, action }) {
   return (
     <div className="state">
       <img src="/images/empty.svg" alt="" className="state-image" />
-      <h3>{title}</h3>
+      <p className="state-title">{title}</p>
       {text && <p>{text}</p>}
       {action}
     </div>
@@ -25,7 +25,7 @@ export function EmptyState({ title, text, action }) {
 export function ErrorState({ error, title = 'Nepavyko įkelti duomenų', message, onRetry }) {
   return (
     <div className="state state-error" role="alert">
-      <h3>{title}</h3>
+      <p className="state-title">{title}</p>
       <p>{message || (error ? getErrorMessage(error) : '')}</p>
       {onRetry && (
         <button type="button" className="btn btn-outline" onClick={onRetry}>

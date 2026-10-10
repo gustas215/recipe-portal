@@ -439,7 +439,10 @@ select:disabled {
   color: var(--color-muted);
 }
 
-.state h3 {
+.state-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -448,7 +451,7 @@ select:disabled {
   margin-bottom: 1rem;
 }
 
-.state-error h3 {
+.state-error .state-title {
   color: var(--color-danger);
 }
 

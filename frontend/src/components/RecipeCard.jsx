@@ -7,7 +7,9 @@ import './RecipeCard.css';
 const PLACEHOLDER = '/images/placeholder.svg';
 
 // Recepto kortelė sąrašuose. actions rodomi apačioje (redagavimo ir trynimo mygtukai).
-export default function RecipeCard({ recipe, actions }) {
+export default function RecipeCard({ recipe, actions, headingLevel = 3 }) {
+  // Antraštės lygis pritaikomas puslapiui: po h1 kortelių pavadinimai turi būti h2, po h2 skyriumi h3
+  const Heading = `h${headingLevel}`;
   const link = `/categories/${recipe.categoryId}/recipes/${recipe.id}`;
 
   function showFallbackImage(event) {
@@ -27,9 +29,9 @@ export default function RecipeCard({ recipe, actions }) {
 
       <div className="recipe-card-body">
         {recipe.category && <span className="recipe-card-category">{recipe.category.name}</span>}
-        <h3>
+        <Heading>
           <Link to={link}>{recipe.title}</Link>
-        </h3>
+        </Heading>
         <StarRating value={recipe.averageRating} count={recipe.commentCount} />
         <ul className="recipe-meta">
           <li>

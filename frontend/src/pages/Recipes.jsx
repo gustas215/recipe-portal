@@ -164,7 +164,7 @@ export default function Recipes() {
           <p className="result-count">Rasta receptų: {recipes.data.pagination.totalItems}</p>
           <div className={`recipe-grid ${recipes.loading ? 'is-loading' : ''}`}>
             {recipes.data.data.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
+              <RecipeCard key={recipe.id} recipe={recipe} headingLevel={2} />
             ))}
           </div>
           <Pagination pagination={recipes.data.pagination} onChange={handlePage} />

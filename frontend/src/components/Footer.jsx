@@ -14,7 +14,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3>Naršyti</h3>
+          <h2>Naršyti</h2>
           <ul>
             <li>
               <Link to="/">Pradžia</Link>
@@ -29,7 +29,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3>Apie projektą</h3>
+          <h2>Apie projektą</h2>
           <ul>
             <li>KTU, T120B165 Saityno taikomųjų programų projektavimas</li>
             <li>Gustas Valaika, IF-4</li>

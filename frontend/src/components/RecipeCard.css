@@ -46,16 +46,19 @@
   color: var(--color-secondary);
 }
 
+.recipe-card-body h2,
 .recipe-card-body h3 {
   margin: 0;
   font-size: 1.15rem;
 }
 
+.site-main .recipe-card-body h2 a,
 .site-main .recipe-card-body h3 a {
   color: var(--color-text);
   text-decoration: none;
 }
 
+.site-main .recipe-card-body h2 a:hover,
 .site-main .recipe-card-body h3 a:hover {
   color: var(--color-primary);
 }
