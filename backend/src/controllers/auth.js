@@ -22,6 +22,13 @@ const refreshCookieOptions = {
   maxAge: REFRESH_TOKEN_MS,
 };
 
+// Refresh žetonas iš cookie. cookie-parser reikšmę, prasidedančią "j:", paverčia objektu,
+// todėl kitokio nei tekstas tipo reikšmė laikoma neegzistuojančia (kitaip hash funkcija mestų klaidą, 500).
+function getRefreshToken(req) {
+  const token = req.cookies?.refreshToken;
+  return typeof token === 'string' && token !== '' ? token : null;
+}
+
 function toUserResource(user) {
   return {
     id: user.id,
@@ -91,7 +98,7 @@ async function login(req, res) {
 // Iškeičia refresh žetoną (cookie) į naują access žetoną.
 // Rotacija: senoji sesija atšaukiama, sukuriama nauja su nauju refresh žetonu.
 async function refresh(req, res) {
-  const token = req.cookies.refreshToken;
+  const token = getRefreshToken(req);
   if (!token) {
     throw new ApiError(401, 'Trūksta refresh žetono');
   }
@@ -114,7 +121,7 @@ async function refresh(req, res) {
 // Atsijungimas: sesija atšaukiama DB, cookie išvalomas.
 // Jei refresh žetono nėra, vis tiek grąžinamas 204 (naudotojas ir taip atsijungęs).
 async function logout(req, res) {
-  const token = req.cookies.refreshToken;
+  const token = getRefreshToken(req);
   if (token) {
     const session = await RefreshToken.findOne({ where: { tokenHash: hashToken(token) } });
     if (session && !session.revokedAt) {
