@@ -3,7 +3,11 @@
 T120B165 Saityno taikomųjų programų projektavimas, Kauno technologijos universitetas, Informatikos fakultetas.
 Studentas: Gustas Valaika, IF-4. Dėstytojai: Lukas Navickas, Rasa Mažutienė.
 
-Ataskaita pildoma kartu su laboratoriniais darbais. Skyriai 1, 2 ir 4 parengti. Diegimo diagrama, 3 ir 5 skyriai bus užpildyti baigus 3 laboratorinį darbą.
+Veikianti sistema (adresai įrašomi po diegimo, žr. skyrių „Diegimas ir nuorodos“):
+
+- Front-End: ____
+- API: ____
+- API dokumentacija (Swagger UI): ____/api-docs
 
 ## 1. Sprendžiamo uždavinio aprašymas
 
@@ -57,13 +61,30 @@ Trynimas: kategorijos, kurioje yra receptų, ištrinti negalima (409). Ištrynus
 
 Sistemos dalys:
 
-- kliento pusė (Front-End): React (bus realizuota 3 laboratoriniame darbe);
+- kliento pusė (Front-End): React 19, Vite, React Router, axios;
 - serverio pusė (Back-End): Node.js, Express 5, Sequelize 6;
 - duomenų bazė: PostgreSQL, talpinama Supabase platformoje.
 
 Back-End ir Front-End talpinami Render platformoje kaip dvi atskiros vykdymo aplinkos, duomenų bazė yra atskirame Supabase serveryje. Naršyklė su Front-End ir API bendrauja HTTPS protokolu (JSON), API su duomenų baze jungiasi per Sequelize ORM su SSL.
 
-Diegimo diagrama (UML) bus pridėta po 3 laboratorinio darbo, kai bus žinomi galutiniai adresai.
+2.1 pav. pavaizduota diegimo diagrama. Front-End yra statinė svetainė (Render Static Site), API yra atskira Render Web Service. Naršyklė puslapio failus parsisiunčia iš statinės svetainės, o duomenis ir prisijungimą gauna tiesiogiai iš API (HTTPS, JSON). API su duomenų baze Supabase jungiasi per Sequelize su SSL.
+
+![2.1 pav. Sistemos „Receptų portalas“ diegimo diagrama](docs/deployment-diagram.svg)
+
+*2.1 pav. Sistemos „Receptų portalas“ diegimo diagrama*
+
+Front-End kodo struktūra (`frontend/src`):
+
+| Aplankas | Paskirtis |
+|---|---|
+| `pages/` | puslapiai: pradžia, receptų sąrašas, receptas, prisijungimas, registracija, skydelis, administravimas |
+| `components/` | pakartotinai naudojami elementai: antraštė, poraštė, modaliniai langai, formos, receptų kortelė, žvaigždučių įvertinimas, puslapiavimas |
+| `api/` | axios egzempliorius (`client.js`) su žetonų atnaujinimu ir klaidų tekstų pagalbinės funkcijos |
+| `context/` | `AuthContext`: prisijungęs naudotojas, prisijungimas, registracija, atsijungimas |
+| `hooks/` | `useFetch`: GET užklausa su krovimo ir klaidos būsenomis |
+| `styles.css`, `*.css` | bendras stilius (spalvų kintamieji) ir komponentų stiliai |
+
+Būsena laikoma React viduje: prisijungęs naudotojas `AuthContext`, puslapių duomenys `useState` per `useFetch`, filtrai ir puslapis adreso parametruose. Access žetonas laikomas tik atmintyje (`api/client.js`), o perkrovus puslapį atgaunamas per refresh cookie.
 
 Back-End kodo struktūra (`backend/src`):
 
@@ -80,7 +101,43 @@ Middleware tvarka apsaugotame kelyje: `authenticate` (401) → `authorize` (403 
 
 ## 3. Naudotojo sąsajos projektas
 
-Bus užpildyta po 3 laboratorinio darbo (wireframe ir juos atitinkantys ekranvaizdžiai).
+Sąsaja sukurta nuo wireframe: pirma suprojektuoti keturi langai, tada jie realizuoti. Wireframe yra SVG formatu (`docs/wireframes`), juos galima atidaryti ar importuoti į Figmą. Visi langai turi tris sritis (antraštė, turinys, poraštė) ir prisitaiko prie ekrano: iki 768 px meniu paslepiamas už hamburgerio, tinkleliai tampa vienu stulpeliu, lentelės virsta kortelėmis.
+
+**1. Pradžios puslapis**
+
+| Wireframe | Realizacija |
+|---|---|
+| ![Pradžios wireframe](docs/wireframes/1-pradzia.svg) | ![Pradžios puslapis](docs/screenshots/pradzia.png) |
+
+**2. Recepto puslapis** (receptas, ingredientai, gaminimo eiga, atsiliepimai ir jų forma)
+
+| Wireframe | Realizacija |
+|---|---|
+| ![Recepto wireframe](docs/wireframes/2-receptas.svg) | ![Recepto puslapis](docs/screenshots/receptas.png) |
+
+**3. Recepto forma** (modalinis langas kūrimui ir redagavimui)
+
+| Wireframe | Realizacija |
+|---|---|
+| ![Recepto formos wireframe](docs/wireframes/3-recepto-forma.svg) | ![Recepto forma](docs/screenshots/recepto-forma.png) |
+
+**4. Telefono versija** (hamburger meniu)
+
+| Wireframe | Realizacija |
+|---|---|
+| ![Telefono wireframe](docs/wireframes/4-telefonas.svg) | ![Telefono meniu](docs/screenshots/telefonas-meniu.png) |
+
+Papildomi langai: [mano skydelis](docs/screenshots/skydelis.png) ir [administravimas](docs/screenshots/administravimas.png).
+
+Sąsajos sprendimai:
+
+- spalvų paletė laikoma CSS kintamuosiuose (`styles.css`): terakota pagrindiniams veiksmams, žalia antraštei ir poraštei, medaus spalva akcentams;
+- šriftai iš Google Fonts: Nunito (tekstas) ir Playfair Display (antraštės). Lietuviškas raides turi latin-ext poaibis, kurį Google Fonts prideda pats;
+- ikonos yra SVG (`react-icons`), iliustracijos SVG failai `frontend/public/images`;
+- antraštė, turinys ir poraštė turi skirtingą stilių (pvz. antraštėje nuorodos yra tabletės, turinyje pabraukiamos, poraštėje paprastos);
+- duomenų įvedimui naudojami: tekstas, el. paštas, slaptažodis, textarea, select, number, radio, url ir žvaigždučių pasirinkimas;
+- grįžtamasis ryšys: pranešimai (toast), klaidos prie formos laukų, krovimo, tuščio sąrašo ir klaidos būsenos. Naršyklės `alert()` ir `confirm()` nenaudojami, trynimas patvirtinamas modaliniame lange;
+- animacijos: kortelių ir mygtukų `transition`, `@keyframes` modalinio lango atsiradimui, krovimo rateliui ir turinio atsiradimui.
 
 ## 4. API specifikacija
 
@@ -212,7 +269,28 @@ Daugiau pavyzdžių yra kiekvieno metodo aprašyme `docs/api-spec.yaml` faile.
 
 ## 5. Išvados
 
-Bus parašytos baigus projektą.
+1. Hierarchinis API kelias (kategorija → receptas → atsiliepimas) kartu su resurso paieška viduriniame sluoksnyje (`middleware/loaders.js`) užtikrina, kad receptas pasiekiamas tik per savo kategoriją, o atsiliepimas tik per savo receptą, kitu atveju grąžinamas 404. Dėl to adresas vienareikšmiškai nurodo resursą, o kontroleriai gauna jau patikrintą objektą. Kaina yra papildomi tarpiniai sluoksniai kiekviename kelyje.
+2. Autentifikacijai pasirinktas trumpas access žetonas (15 min.) ir ilgesnis refresh žetonas (7 d.) su rotacija. Refresh žetonas saugomas duomenų bazėje tik kaip hash, todėl nutekėjus duomenų bazei juo pasinaudoti negalima. Kiekvienas panaudotas refresh žetonas atšaukiamas, todėl pavogtas ir jau panaudotas žetonas nebeveikia.
+3. Atsijungimas atšaukia sesiją duomenų bazėje, o `authenticate` kiekvienoje užklausoje tikrina, ar sesija aktyvi. Gavome tai, ko nepasiektų vien JWT: po atsijungimo nustoja veikti ir dar nepasibaigęs access žetonas. Kaina yra viena papildoma duomenų bazės užklausa kiekvienam apsaugotam metodui.
+4. Rolė saugoma žetone, todėl teisių tikrinimui nereikia duomenų bazės, bet pakeista rolė įsigalioja tik pasibaigus senam access žetonui (iki 15 min.). Autorius (`authorId`) imamas iš žetono, o užklausos kūne atsiųsti `authorId` ir `role` ignoruojami, todėl negalima kurti turinio kito naudotojo vardu ar tapti administratoriumi per registraciją.
+5. Nuosavybės patikra (`middleware/ownership.js`) atskirta nuo rolės patikros (`authorize`). Dėl to aiškiai skiriasi 401 (nežinome, kas jūs), 403 (žinome, bet negalite) ir 404 (tokio resurso nėra), o bendra logika naudojama receptams, atsiliepimams ir skydeliui.
+6. Front-End access žetoną laiko tik atmintyje, o ne `localStorage`, todėl jo negali perskaityti kiti skriptai iš naršyklės saugyklos. Perkrovus puslapį sesija atkuriama per refresh cookie. Kai kelios užklausos vienu metu gauna 401, žetonas atnaujinamas vieną kartą, nes antras refresh su jau panaudotu žetonu būtų atmestas.
+7. Front-End ir API yra skirtinguose domenuose, todėl refresh cookie turi `SameSite=None` ir `Secure`. Kai kurios naršyklės blokuoja trečiųjų šalių slapukus, todėl tokiose naršyklėse po puslapio perkrovimo gali tekti prisijungti iš naujo. Visiškai išspręsti tai galėtų bendras domenas Front-End ir API adresams.
+8. Nemokami Render planai po nenaudojimo užmiega, todėl pirmas atsakymas gali užtrukti iki minutės. Sąsaja tai paaiškina krovimo ekrane (pranešimas po kelių sekundžių), o prieš demonstraciją abu serverius reikia pažadinti.
+9. Neįgyvendinta: apsauga nuo slaptažodžių brutalaus bandymo (užklausų dažnio ribojimas), dviejų faktorių autentifikacija, visų sesijų atšaukimas aptikus pakartotinį refresh žetono naudojimą ir nuotraukų įkėlimas (receptams nurodoma nuoroda į nuotrauką). Tai natūralūs tolesni žingsniai.
+
+## Diegimas ir nuorodos
+
+Sistema diegiama Render platformoje (Back-End ir Front-End atskirai), duomenų bazė yra Supabase.
+
+| Paslauga | Render nustatymai |
+|---|---|
+| API (Web Service) | Root Directory: nenurodyti (turi būti viso repozitorijos šaknis, nes API skaito `docs/api-spec.yaml`). Build Command: `cd backend && npm install`. Start Command: `cd backend && node src/server.js`. Aplinkos kintamieji: `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `FRONTEND_URL` (Front-End adresas be pasvirojo brūkšnio pabaigoje) |
+| Front-End (Static Site) | Root Directory: `frontend`. Build Command: `npm install && npm run build`. Publish Directory: `dist`. Aplinkos kintamasis: `VITE_API_URL` (API adresas su `/api`, pvz. `https://.../api`). Rewrite taisyklė: `/*` → `/index.html` |
+
+`VITE_API_URL` įrašomas į programą kūrimo metu, todėl jį pakeitus Front-End reikia perkurti (Manual Deploy).
+
+Nuorodos: Front-End ____, API ____, Swagger UI ____/api-docs, kodas https://github.com/gustas215/recipe-portal.
 
 ## Paleidimas lokaliai
 
@@ -222,6 +300,7 @@ Reikia Node.js (LTS) ir PostgreSQL duomenų bazės (pvz. Supabase projekto).
 2. Sukurti `backend/.env` pagal `backend/.env.example` (`DATABASE_URL`, `JWT_ACCESS_SECRET`, `FRONTEND_URL`, `PORT`). Slaptą raktą galima sugeneruoti komanda `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`.
 3. Užpildyti duomenų bazę: `npm run seed`. Komanda ištrina ir sukuria lenteles iš naujo.
 4. Paleisti serverį: `npm run dev`. API pasiekiamas adresu `http://localhost:3000/api`, dokumentacija `http://localhost:3000/api-docs`.
+5. Kitame terminale aplanke `frontend` įdiegti paketus (`npm install`) ir paleisti sąsają: `npm run dev`. Sąsaja pasiekiama adresu `http://localhost:5173`. API adresas imamas iš `VITE_API_URL` (pagal `frontend/.env.example`), o jei jo nėra, naudojamas `http://localhost:3000/api`. Back-End `FRONTEND_URL` turi būti `http://localhost:5173`.
 
 Testiniai naudotojai (po `npm run seed`): `admin@example.com` / `Admin123!` (administratorius), `jonas@example.com`, `ruta@example.com`, `mantas@example.com` / `Slaptazodis123!` (paprasti naudotojai).
 
