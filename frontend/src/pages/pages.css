@@ -1,0 +1,486 @@
+/* ===== Pradžia: hero ===== */
+.hero {
+  background: linear-gradient(135deg, var(--color-secondary-dark) 0%, var(--color-secondary) 100%);
+  color: #fff;
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  align-items: center;
+  gap: 2rem;
+  padding-block: 3rem;
+}
+
+.site-main .hero h1 {
+  color: #fff;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+}
+
+.hero-text p {
+  max-width: 34rem;
+  font-size: 1.1rem;
+  color: #dcebe4;
+}
+
+.hero-search {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 34rem;
+  margin-bottom: 1rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.hero-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hero-search input:focus {
+  box-shadow: none;
+}
+
+.hero-search:focus-within {
+  outline: 3px solid var(--color-accent);
+}
+
+.site-main .hero-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.site-main .hero-link:hover {
+  color: #fff;
+}
+
+.hero-image {
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.3));
+}
+
+/* ===== Kategorijos ir receptų tinkleliai ===== */
+.category-grid,
+.recipe-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.category-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.recipe-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.recipe-grid.is-loading {
+  opacity: 0.6;
+  transition: opacity var(--transition);
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.site-main a.category-card {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.category-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #dcebe3;
+}
+
+.category-card-body {
+  padding: 1rem;
+}
+
+.category-card-body h3 {
+  margin-bottom: 0.25rem;
+  font-size: 1.15rem;
+  color: var(--color-secondary-dark);
+}
+
+.category-card-body p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.site-main .link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+/* ===== Filtrai ===== */
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.filter span {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.result-count {
+  margin-bottom: 1rem;
+  color: var(--color-muted);
+}
+
+/* ===== Receptas ===== */
+.recipe-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.recipe-detail-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #f1e6d3;
+  box-shadow: var(--shadow-md);
+}
+
+.recipe-detail-info .badge {
+  margin-bottom: 0.75rem;
+}
+
+.recipe-meta-large {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.recipe-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.ingredients {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.ingredients li {
+  margin-bottom: 0.4rem;
+}
+
+.ingredients li::marker {
+  color: var(--color-primary);
+}
+
+.reviews h2 {
+  margin-bottom: 1rem;
+}
+
+.review-new {
+  margin-bottom: 1.25rem;
+}
+
+.review-new h3 {
+  font-size: 1.1rem;
+}
+
+.review-new p:last-child {
+  margin-bottom: 0;
+}
+
+.review-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review {
+  display: flex;
+  gap: 1rem;
+  animation: fadeUp 0.4s ease backwards;
+}
+
+.review-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.review-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-main p {
+  margin: 0.4rem 0 0;
+}
+
+.review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+/* ===== Prisijungimas ir registracija ===== */
+.auth-page {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem;
+  box-shadow: var(--shadow-md);
+}
+
+.auth-switch {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+/* ===== Skydelis ===== */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-top: 4px solid var(--color-primary);
+}
+
+.stat-value {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-secondary-dark);
+}
+
+.stat-value .stars {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+}
+
+.stat-label {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.site-main .section-title {
+  margin-top: 2rem;
+}
+
+/* ===== Administravimas ===== */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 1rem 0 1.5rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tabs button {
+  padding: 0.7rem 1.25rem;
+  margin-bottom: -2px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.tabs button:hover {
+  color: var(--color-secondary-dark);
+}
+
+.tabs button.active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-secondary-dark);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.8rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  background: #f6efe2;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-secondary-dark);
+}
+
+.table tbody tr {
+  transition: background var(--transition);
+}
+
+.table tbody tr:hover {
+  background: #fcf9f3;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table .button-row {
+  flex-wrap: nowrap;
+  margin-top: 0;
+}
+
+/* ===== Planšetė ir telefonas ===== */
+@media (max-width: 768px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+    padding-block: 2rem;
+    text-align: center;
+  }
+
+  .hero-text p,
+  .hero-search {
+    margin-inline: auto;
+  }
+
+  .hero-image {
+    max-width: 280px;
+    order: -1;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions .btn {
+    flex: 1;
+  }
+
+  .recipe-detail,
+  .recipe-content {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    padding: 1.25rem;
+  }
+
+  /* Lentelė telefone virsta kortelėmis: kiekvienas laukas su savo pavadinimu */
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    padding: 0.5rem 0;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .table tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table td {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.4rem 1rem;
+    border-bottom: 0;
+  }
+
+  .table .button-row {
+    flex-wrap: wrap;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
