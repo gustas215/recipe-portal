@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <title>Recepto nuotraukos nėra</title>
+  <rect width="400" height="300" fill="#f1e6d3"/>
+  <circle cx="200" cy="150" r="82" fill="#fffaf2" stroke="#d9c7a8" stroke-width="6"/>
+  <circle cx="200" cy="150" r="56" fill="none" stroke="#d9c7a8" stroke-width="4"/>
+  <g fill="none" stroke="#b9a27d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M98 96v38a10 10 0 0 0 10 10v50"/>
+    <path d="M88 96v26M108 96v26"/>
+    <path d="M302 196V96c-14 10-20 28-20 46 0 10 8 14 20 14"/>
+  </g>
+</svg>

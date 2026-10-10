@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420">
+  <title>Garuojantis dubuo su pomidorų sriuba</title>
+  <circle cx="290" cy="200" r="175" fill="#f2b84b" opacity=".28"/>
+  <circle cx="110" cy="90" r="38" fill="#f2b84b" opacity=".5"/>
+  <circle cx="500" cy="330" r="26" fill="#d9693f" opacity=".5"/>
+  <ellipse cx="280" cy="388" rx="190" ry="16" fill="#000" opacity=".18"/>
+  <!-- garai -->
+  <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".55">
+    <path d="M220 150c-20-24 18-38 0-64"/>
+    <path d="M280 140c-20-26 18-42 0-70"/>
+    <path d="M340 150c-20-24 18-38 0-64"/>
+  </g>
+  <!-- dubuo -->
+  <path d="M96 208h368c0 96-80 168-184 168S96 304 96 208z" fill="#fffaf2"/>
+  <path d="M96 208h368c0 22-3 42-9 60H105c-6-18-9-38-9-60z" fill="#234a3f" opacity=".1"/>
+  <ellipse cx="280" cy="208" rx="184" ry="34" fill="#fffaf2"/>
+  <ellipse cx="280" cy="210" rx="166" ry="26" fill="#d9693f"/>
+  <path d="M170 212c40-14 70 10 110 0s70-10 110 2" fill="none" stroke="#f6c9a5" stroke-width="6" stroke-linecap="round"/>
+  <!-- priedai -->
+  <circle cx="226" cy="204" r="9" fill="#4f8a5b"/>
+  <circle cx="318" cy="216" r="8" fill="#4f8a5b"/>
+  <circle cx="276" cy="200" r="7" fill="#f2b84b"/>
+  <circle cx="352" cy="204" r="6" fill="#4f8a5b"/>
+  <!-- bazė -->
+  <rect x="220" y="372" width="120" height="14" rx="7" fill="#e8dfd1"/>
+  <!-- šaukštas -->
+  <g transform="rotate(28 470 140)">
+    <ellipse cx="470" cy="110" rx="26" ry="38" fill="#e8dfd1"/>
+    <rect x="463" y="140" width="14" height="130" rx="7" fill="#e8dfd1"/>
+  </g>
+</svg>

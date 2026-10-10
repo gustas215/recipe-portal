@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <title>Kategorijos iliustracija</title>
+  <rect width="400" height="300" fill="#dcebe3"/>
+  <circle cx="320" cy="60" r="70" fill="#f2b84b" opacity=".35"/>
+  <path d="M120 140h160c0 52-34 90-80 90s-80-38-80-90z" fill="#fffaf2" stroke="#234a3f" stroke-width="6"/>
+  <ellipse cx="200" cy="140" rx="80" ry="16" fill="#4f8a5b"/>
+  <circle cx="176" cy="136" r="8" fill="#b84a33"/>
+  <circle cx="214" cy="140" r="7" fill="#f2b84b"/>
+  <g fill="none" stroke="#234a3f" stroke-width="6" stroke-linecap="round" opacity=".5">
+    <path d="M168 110c-12-14 10-22 0-38"/>
+    <path d="M204 106c-12-14 10-24 0-42"/>
+    <path d="M238 110c-12-14 10-22 0-38"/>
+  </g>
+</svg>

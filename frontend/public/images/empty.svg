@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+  <title>Nieko nerasta</title>
+  <ellipse cx="120" cy="156" rx="84" ry="10" fill="#000" opacity=".08"/>
+  <path d="M44 84h152c0 44-34 70-76 70S44 128 44 84z" fill="#fffaf2" stroke="#b9a27d" stroke-width="5"/>
+  <ellipse cx="120" cy="84" rx="76" ry="14" fill="#f1e6d3" stroke="#b9a27d" stroke-width="5"/>
+  <g fill="none" stroke="#b9a27d" stroke-width="5" stroke-linecap="round" opacity=".7">
+    <path d="M96 56c-10-12 8-18 0-30"/>
+    <path d="M124 52c-10-12 8-20 0-34"/>
+    <path d="M152 56c-10-12 8-18 0-30"/>
+  </g>
+</svg>
