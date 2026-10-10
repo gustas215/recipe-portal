@@ -30,9 +30,13 @@ info:
     Testavimui paruošti naudotojai: `admin@example.com` / `Admin123!` (administratorius) ir `jonas@example.com`,
     `ruta@example.com`, `mantas@example.com` / `Slaptazodis123!` (paprasti naudotojai).
 servers:
-  - url: http://localhost:3000/api
-    description: Vietinė aplinka
+  - url: /api
+    description: Ta pati svetainė, iš kurios atidaryta dokumentacija
+  - url: https://recipe-portal-4vyt.onrender.com/api
+    description: Gamybinė aplinka (Render)
 tags:
+  - name: Pradžia
+    description: API įėjimo taškas su nuorodomis į pagrindinius resursus (hypermedia)
   - name: Autentifikacija
     description: Registracija, prisijungimas, žetonų atnaujinimas ir atsijungimas
   - name: Kategorijos
@@ -333,6 +337,18 @@ components:
           properties:
             self: {$ref: '#/components/schemas/Link'}
             recipes: {$ref: '#/components/schemas/Link'}
+    ApiRoot:
+      type: object
+      properties:
+        name: {type: string, example: Receptų portalo API}
+        _links:
+          type: object
+          description: Nuorodos į pagrindinius resursus
+          properties:
+            self: {$ref: '#/components/schemas/Link'}
+            categories: {$ref: '#/components/schemas/Link'}
+            recipes: {$ref: '#/components/schemas/Link'}
+            users: {$ref: '#/components/schemas/Link'}
     RegisterInput:
       type: object
       required: [username, email, password]
@@ -524,6 +540,26 @@ components:
               message: Šį veiksmą gali atlikti tik pats naudotojas arba administratorius
               details:
 paths:
+  /:
+    get:
+      tags: [Pradžia]
+      summary: API įėjimo taškas
+      description: |
+        Grąžina nuorodas į pagrindinius resursus (hypermedia), iš kurių klientas gali pradėti naršyti API.
+        Metodas viešas.
+      responses:
+        '200':
+          description: Nuorodos į pagrindinius resursus
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiRoot'}
+              example:
+                name: Receptų portalo API
+                _links:
+                  self: {href: /api}
+                  categories: {href: /api/categories}
+                  recipes: {href: /api/recipes}
+                  users: {href: /api/users}
   /auth/register:
     post:
       tags: [Autentifikacija]

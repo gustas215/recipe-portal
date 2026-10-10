@@ -101,7 +101,7 @@ Middleware tvarka apsaugotame kelyje: `authenticate` (401) → `authorize` (403 
 
 ## 3. Naudotojo sąsajos projektas
 
-Sąsaja sukurta nuo wireframe: pirma suprojektuoti keturi langai, tada jie realizuoti. Wireframe yra SVG formatu (`docs/wireframes`), juos galima atidaryti ar importuoti į Figmą. Visi langai turi tris sritis (antraštė, turinys, poraštė) ir prisitaiko prie ekrano: iki 768 px meniu paslepiamas už hamburgerio, tinkleliai tampa vienu stulpeliu, lentelės virsta kortelėmis.
+Sąsaja sukurta nuo wireframe: pirma suprojektuoti keturi langai, tada jie realizuoti. Wireframe yra SVG formatu (`docs/wireframes`), juos galima atidaryti ar importuoti į Figmą. Visi langai turi tris sritis (antraštė, turinys, poraštė) ir prisitaiko prie ekrano: iki 1024 px meniu paslepiamas už hamburgerio (siauresniame lange netelpa ilgesnis prisijungusio naudotojo meniu), iki 768 px tinkleliai tampa vienu stulpeliu, tinkleliai tampa vienu stulpeliu, lentelės virsta kortelėmis.
 
 **1. Pradžios puslapis**
 
@@ -149,6 +149,7 @@ Pilna OpenAPI 3.0 specifikacija: [docs/api-spec.yaml](docs/api-spec.yaml). Kiekv
 
 | Metodas | Adresas | Kas gali | Sėkmės kodas |
 |---|---|---|---|
+| GET | `/api` | viešas (įėjimo taškas su nuorodomis) | 200 |
 | POST | `/api/auth/register` | viešas | 201 |
 | POST | `/api/auth/login` | viešas | 200 |
 | POST | `/api/auth/refresh` | viešas (reikia refresh cookie) | 200 |
