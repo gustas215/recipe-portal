@@ -1,0 +1,48 @@
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: #e0a21b;
+  font-size: 0.95rem;
+}
+
+.stars-value {
+  margin-left: 0.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stars-count {
+  margin-left: 0.15rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.stars-empty {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.star-input {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.star-input button {
+  padding: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: #c9bda5;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--transition), color var(--transition);
+}
+
+.star-input button:hover {
+  transform: scale(1.15);
+}
+
+.star-input button.active {
+  color: #e0a21b;
+}
