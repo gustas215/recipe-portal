@@ -234,6 +234,15 @@ const recipesData = [
   },
 ];
 
+// Receptų nuotraukų nuorodos, kad jos išliktų po kiekvieno npm run seed
+const imageUrls = {
+  'Šaltibarščiai': 'https://paprastireceptai.lt/wp-content/uploads/2026/08/saltibarsciai.webp',
+  'Cepelinai su mėsa': 'https://images.delfi.lt/media-api-image-cropper/v1/21066f01-b42c-4fbc-bf18-0d4ee0f37e9e.jpg?noup&w=1264&h=711',
+  'Bulvių kugelis': 'https://www.sauletavirtuve.lt/wp-content/uploads/Kugelis-su-skilandziu-1200.jpg',
+  'Varškės apkepas su manų kruopomis': 'https://www.sauletavirtuve.lt/wp-content/uploads/Varskes-apkepas_1200-1170x1753.jpg',
+  'Bulviniai blynai': 'https://www.persikas.com/_next/image?url=https%3A%2F%2Fdm2xzko1gj54v.cloudfront.net%2Flanding-blog-post-images%2F8f6a43e6-bb99-4a87-90fb-b1f2e43f96c0.png&w=828&q=75',
+};
+
 const commentsData = [
   { recipe: 'Šaltibarščiai', author: 'ruta', rating: 5, text: 'Labai gaivūs, kaip tik tinka karštą dieną. Pridėjau daugiau krapų ir buvo dar geriau.' },
   { recipe: 'Šaltibarščiai', author: 'mantas', rating: 4, text: 'Skanu, bet man pritrūko druskos. Kitą kartą įdėsiu daugiau žaliųjų svogūnų.' },
@@ -280,6 +289,7 @@ async function seed() {
       const { category, author, ...fields } = r;
       recipes[r.title] = await Recipe.create({
         ...fields,
+        imageUrl: imageUrls[r.title] ?? null,
         categoryId: categories[category].id,
         authorId: users[author].id,
       });
